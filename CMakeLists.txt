@@ -7,6 +7,7 @@ endif()
 
 # Define paths
 set(VENDOR_DIR "${CMAKE_SOURCE_DIR}/vendor")
+set(IMAGES_DIR "${CMAKE_SOURCE_DIR}/images")
 
 # Include cmake modules
 include(cmake/update_submodules.cmake)
