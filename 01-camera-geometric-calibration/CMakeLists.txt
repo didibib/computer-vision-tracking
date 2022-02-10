@@ -6,6 +6,10 @@ set(SOURCE_LIST
     ${PCH_CPP}
     "camera_calibration/camera_calibration.h"
     "camera_calibration/camera_calibration.cpp"
+    "camera_projection/camera_projection.h"
+    "camera_projection/camera_projection.cpp"
+    "checkerboard/checkerboard.h"
+    "checkerboard/checkerboard.cpp"
     "util.h"
     "main.cpp"
 )

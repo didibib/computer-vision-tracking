@@ -1,29 +1,29 @@
 #pragma once
 
-
-
+class Checkerboard;
 class CameraCalibration
 {
 public:
 	/*
 	   @return The intrinsic floating-point camera matrix.
 	*/
-	cv::Mat GetIntrinsicMatrix() { return intrinsicMatrix; }
-	/* @return the Rotation matrix R and Translation matrix T concatenate together, like [R | T].
+	cv::Mat GetIntrinsicMatrix() { return mIntrinsicMatrix; }
+	/* 
+		@return the Rotation matrix R and Translation matrix T concatenate together, like [R | T].
 		Also known as the extrinsic floating-point camera matrix.
 	*/
 	cv::Mat GetExtrinsicMatrix() 
 	{
 		cv::Mat extrinsic;
-		cv::hconcat(R, T, extrinsic);
+		cv::hconcat(mR, mT, extrinsic);
 		return extrinsic;
 	}
 
 
-	/* test
+	/* 
 	   @param The path to image folder
 	*/
-	void Calibrate(Checkerboard const&);
+	void Calibrate(Checkerboard const&, std::string path);
 private:
-	cv::Mat intrinsicMatrix, distCoeffs, R, T;
+	cv::Mat mIntrinsicMatrix, mDistCoeffs, mR, mT;
 };

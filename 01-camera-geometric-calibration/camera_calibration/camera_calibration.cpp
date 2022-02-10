@@ -1,10 +1,10 @@
 #include "pch/cvpch.h"
+#include "checkerboard/checkerboard.h"
 #include "camera_calibration.h"
-
 
 // We used the camera calibration from the following tutorial:
 // https://learnopencv.com/camera-calibration-using-opencv/
-void CameraCalibration::Calibrate(Checkerboard const& checkerboard)
+void CameraCalibration::Calibrate(Checkerboard const& checkerboard, std::string path)
 {
 	// Creating vector to store vectors of 3D points for each checkerboard image
 	std::vector<std::vector<cv::Point3f> > objPoints;
@@ -12,54 +12,28 @@ void CameraCalibration::Calibrate(Checkerboard const& checkerboard)
 	// Creating vector to store vectors of 2D points for each checkerboard image
 	std::vector<std::vector<cv::Point2f> > imgPoints;
 
-	// Defining the world coordinates for 3D points
-	std::vector<cv::Point3f> objp;
-	for (int i{ 0 }; i < checkerboard.Height; i++)
-	{
-		for (int j{ 0 }; j < checkerboard.Width; j++)
-			objp.push_back(cv::Point3f(j, i, 0));
-	}
-
 	// Extracting path of individual image stored in a given directory
 	std::vector<cv::String> images;
-	cv::glob(IMAGES_DIR_STR, images);
+	cv::glob(path, images);
 
-	cv::Mat frame, gray;
-	// vector to store the pixel coordinates of detected checker board corners 
-	std::vector<cv::Point2f> cornerPoints;
-	bool success;
+	cv::Mat frame;
 
 	// Looping over all the images in the directory
 	for (int i{ 0 }; i < images.size(); i++)
 	{
 		frame = cv::imread(images[i]);
-		cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
-
-		// Finding checker board corners
-		// If desired number of corners are found in the image then success = true  
-		success = cv::findChessboardCorners(gray, cv::Size(checkerboard.Width, checkerboard.Height), cornerPoints, cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_FAST_CHECK | cv::CALIB_CB_NORMALIZE_IMAGE);
-
-		/*
-		 * If desired number of corner are detected,
-		 * we refine the pixel coordinates and display
-		 * them on the images of checker board
-		*/
-		if (success)
+		std::vector<cv::Point3f> objp;
+		std::vector<cv::Point2f> imgp;
+		if (checkerboard.FindPoints(frame, objp, imgp))
 		{
-			cv::TermCriteria criteria(cv::TermCriteria::EPS | cv::TermCriteria::MAX_ITER, 30, 0.001);
-
-			// refining pixel coordinates for given 2d points.
-			cv::cornerSubPix(gray, cornerPoints, cv::Size(7, 7), cv::Size(-1, -1), criteria);
-
-			// Displaying the detected corner points on the checker board
-			cv::drawChessboardCorners(frame, cv::Size(checkerboard.Width, checkerboard.Height), cornerPoints, success);
-
 			objPoints.push_back(objp);
-			imgPoints.push_back(cornerPoints);
+			imgPoints.push_back(imgp);
+			// Possible to imshow the current frame with drawn points
+#ifdef _DEBUG
+			cv::imshow("Image", frame);
+			cv::waitKey(0);
+#endif // DEBUG	
 		}
-
-		/*cv::imshow("Image", frame);
-		cv::waitKey(0);*/
 	}
 
 	cv::destroyAllWindows();
@@ -71,10 +45,10 @@ void CameraCalibration::Calibrate(Checkerboard const& checkerboard)
 	 * detected corners (imgpoints)
 	 */
 	printf("calibrating camera");
-	cv::calibrateCamera(objPoints, imgPoints, cv::Size(gray.rows, gray.cols), intrinsicMatrix, distCoeffs, R, T);
+	cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), mIntrinsicMatrix, mDistCoeffs, mR, mT);
 
-	std::cout << "cameraMatrix : " << intrinsicMatrix << std::endl;
-	std::cout << "distCoeffs : " << distCoeffs << std::endl;
-	std::cout << "Rotation vector : " << R << std::endl;
-	std::cout << "Translation vector : " << T << std::endl;
+	std::cout << "cameraMatrix : " << mIntrinsicMatrix << std::endl;
+	std::cout << "distCoeffs : " << mDistCoeffs << std::endl;
+	std::cout << "Rotation vector : " << mR << std::endl;
+	std::cout << "Translation vector : " << mT << std::endl;
 }
