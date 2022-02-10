@@ -2,28 +2,27 @@
 #include "checkerboard/checkerboard.h"
 #include "camera_calibration/camera_calibration.h"
 
-Checkerboard checkerboard { 6, 9,  2.5f };
+const int fps = 60;
+const int delay = int(1000 / fps);
+
+Checkerboard checkerboard(6, 9, 2.5f);
 CameraCalibration calibrator;
 cv::VideoCapture cam(0);
 
-
 int main()
 {
-    //calibrator.Calibrate(checkerboard, IMAGES_DIR_STR);
+	//calibrator.Calibrate(checkerboard, IMAGES_DIR_STR);
 
-    cv::Mat frame;
+	if (!cam.isOpened())
+		throw "Error when reading steam_avi";
 
-    if (!cam.isOpened())
-    {
-        std::cout << "is not opened";
-    }
+	cv::Mat frame;
+	while (cam.read(frame))
+	{
+		imshow("Video", frame);
+		cv::waitKey(delay);
+	}
 
-    while(true)
-    {
-        cam >> frame;
-        cv::imshow("Video", frame);
-    }
-
-    return 0;
+	cam.release();
+	return 0;
 }
-
