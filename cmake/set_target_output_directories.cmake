@@ -1,5 +1,5 @@
 function(set_target_output_directories target)
-    message(STATUS "Setting output directories for ${target}")
+    message(STATUS "Setting output directories for '${target}'")
     get_target_property(target_type ${target} TYPE)
     if (target_type STREQUAL "EXECUTABLE")
         set_target_properties(${target}

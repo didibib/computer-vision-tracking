@@ -1,6 +1,6 @@
-#include "pch/cvpch.h"
-#include "checkerboard/checkerboard.h"
-#include "camera_calibration/camera_calibration.h"
+#include "cvpch.h"
+#include "checkerboard.h"
+#include "camera_calibration.h"
 
 const int fps = 60;
 const int delay = int(1000 / fps);

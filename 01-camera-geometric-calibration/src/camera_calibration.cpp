@@ -1,5 +1,5 @@
-#include "pch/cvpch.h"
-#include "checkerboard/checkerboard.h"
+#include "cvpch.h"
+#include "checkerboard.h"
 #include "camera_calibration.h"
 
 // We used the camera calibration from the following tutorial:

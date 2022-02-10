@@ -12,7 +12,6 @@ set(IMAGES_DIR "${CMAKE_SOURCE_DIR}/images")
 # Include cmake modules
 include(cmake/update_submodules.cmake)
 include(cmake/set_startup_project.cmake)
-include(cmake/set_precompiled_header.cmake)
 include(cmake/ignore_precompiled_header.cmake)
 include(cmake/set_target_output_directories.cmake)
 
