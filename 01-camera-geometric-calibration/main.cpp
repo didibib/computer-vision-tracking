@@ -33,9 +33,11 @@ void drawAxis(cv::Mat& frame, Camera& cam);
 void drawCube(cv::Mat& frame, Camera& cam, float t);
 void drawImage(cv::Mat& frame, std::vector<cv::Point2f> dstPoints, std::string imgPath);
 
-
 int main()
 {
+	/*
+		First, we calibrate our camera so we get our intrinsic matrix.
+	*/
 	camera.Calibrate(checkerboard, IMAGES_DIR_STR + "/calibration");
 
 	printf("Starting camera\n");
@@ -45,7 +47,9 @@ int main()
 	cv::Mat frame;
 	while (webcam.read(frame))
 	{
-
+		/*
+			Then, for each frame, we calculate our extrinsic matrix (R and T) using our intrinsic matrix. 
+		*/
 		if (camera.SolveFrame(checkerboard, frame))
 		{
 			drawAxis(frame, camera);
@@ -105,8 +109,10 @@ void drawCube(cv::Mat& frame, Camera& cam, float t)
 */
 std::vector<cv::Point3f> transform(std::vector<cv::Point3f> const& points, std::vector<float> translation, std::vector<float> rotation)
 {
+	// Create rotation matrix from rotation vector
 	cv::Mat R;
 	cv::Rodrigues(rotation, R);
+
 	cv::Mat T = cv::Mat(translation);
 	cv::Mat M;
 	cv::Mat filler = (cv::Mat_<float>(1, 4) << 0, 0, 0, 1);
@@ -114,14 +120,10 @@ std::vector<cv::Point3f> transform(std::vector<cv::Point3f> const& points, std::
 	hconcat(R, T, M);
 	vconcat(M, filler, M);
 
-	std::cout << "M: " << M << std::endl;
-
 	std::vector<cv::Point3f> transPoints;
 	for (int i = 0; i < cube.size(); i++)
 	{
 		cv::Mat point = M * (cv::Mat_<float>(4, 1) << cube[i].x, cube[i].y, cube[i].z, 1);
-		std::cout << "cube : " << cube[i] << std::endl;
-		std::cout << "point : " << point << std::endl;
 		transPoints.push_back(cv::Point3f(point.at<float>(0, 0), point.at<float>(1, 0), point.at<float>(2, 0)));
 	}
 	return transPoints;
@@ -137,26 +139,22 @@ void drawImage(cv::Mat& frame, std::vector<cv::Point2f> dstPoints, std::string i
 		cv::Point2f(0.f, image.rows),
 		cv::Point2f(image.cols, image.rows) };
 
+	// Find the perspective transformation between planes
 	cv::Mat h = cv::findHomography(imgPoints, dstPoints, cv::RANSAC, 5.0);
 	cv::Mat warped;
+
+	// Use the homography matrix to warp our image
 	cv::warpPerspective(image, warped, h, cv::Size(frame.cols, frame.rows));
-	
+
+	// Create a mask where everything is white, but the image is black
 	cv::Mat invMask;
 	cv::threshold(warped, invMask, 0, 255, cv::THRESH_BINARY_INV);
 
+	// Combine the mask and the current frame
 	cv::Mat frameMasked;
 	cv::bitwise_and(frame, invMask, frameMasked);
 
+	// Combine the frame with the warped image
 	cv::bitwise_or(frameMasked, warped, frame);
 
 }
-
-/*
-ret, mask = cv.threshold(img2gray, 10, 255, cv.THRESH_BINARY)
-mask_inv = cv.bitwise_not(mask)
-# Now black - out the area of logo in ROI
-img1_bg = cv.bitwise_and(roi, roi, mask = mask_inv)
-# Take only region of logo from logo image.
-img2_fg = cv.bitwise_and(img2, img2, mask = mask)
-# Put logo in ROI and modify the main image
-dst = cv.add(img1_bg, img2_fg) */
