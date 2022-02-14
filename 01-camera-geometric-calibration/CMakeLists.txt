@@ -3,14 +3,9 @@ set(PCH
     "src/cvpch.cpp"
 )
 
-set(CAMERA_CALIBRATION 
-    "include/camera_calibration.h"
-    "src/camera_calibration.cpp"
-)
-
-set(CAMERA_PROJECTION
-    "include/camera_projection.h"
-    "src/camera_projection.cpp"
+set(CAMERA
+    "include/camera.h"
+    "src/camera.cpp"
 )
 
 set(CHECKERBOARD
@@ -25,6 +20,7 @@ set(ROOT_FILES
 
 set(SOURCE_LIST
     ${PCH}
+    ${CAMERA}
     ${CAMERA_CALIBRATION}
     ${CAMERA_PROJECTION}
     ${CHECKERBOARD}
@@ -38,7 +34,7 @@ add_executable(${TARGET} ${SOURCE_LIST})
 # Group sources according to the folder structure
 source_group(\\ FILES ${ROOT_FILES})
 source_group(pch FILES ${PCH})
-source_group(camera FILES ${CAMERA_CALIBRATION} ${CAMERA_PROJECTION})
+source_group(camera FILES ${CAMERA})
 source_group(checkerboard FILES ${CHECKERBOARD})
 
 # Set output directories (function found in: cmake/)    

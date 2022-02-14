@@ -13,7 +13,7 @@ public:
 	int GetHeight() const { return mHeight; }
 	float GetCm() const { return mCm; }
 
-	int FindPoints(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints) const;
+	int FindPoints(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints, bool drawCorners = false) const;
 
 private:
 	int mWidth;

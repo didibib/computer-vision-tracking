@@ -3,7 +3,7 @@
 
 // We used the camera calibration from the following tutorial:
 // https://learnopencv.com/camera-calibration-using-opencv/
-int Checkerboard::FindPoints(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints) const
+int Checkerboard::FindPoints(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints, bool drawCorners) const
 {
 	cv::Mat gray;
 	cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
@@ -25,7 +25,8 @@ int Checkerboard::FindPoints(cv::Mat& frame, std::vector<cv::Point3f>& objPoints
 		cv::cornerSubPix(gray, imgPoints, cv::Size(7, 7), cv::Size(-1, -1), criteria);
 
 		// Displaying the detected corner points on the checker board
-		cv::drawChessboardCorners(frame, cv::Size(mWidth, mHeight), imgPoints, success);
+		if(drawCorners)
+			cv::drawChessboardCorners(frame, cv::Size(mWidth, mHeight), imgPoints, success);
 
 		// Defining the world coordinates for 3D points
 		// We multiply our grid with the real size of the checkerboard
