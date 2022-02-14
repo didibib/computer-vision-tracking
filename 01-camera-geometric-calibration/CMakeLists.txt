@@ -1,3 +1,8 @@
+set(PCH 
+    "include/cvpch.h"
+    "src/cvpch.cpp"
+)
+
 set(CAMERA_CALIBRATION 
     "include/camera_calibration.h"
     "src/camera_calibration.cpp"
@@ -19,6 +24,7 @@ set(ROOT_FILES
 )
 
 set(SOURCE_LIST
+    ${PCH}
     ${CAMERA_CALIBRATION}
     ${CAMERA_PROJECTION}
     ${CHECKERBOARD}
@@ -31,6 +37,7 @@ add_executable(${TARGET} ${SOURCE_LIST})
 
 # Group sources according to the folder structure
 source_group(\\ FILES ${ROOT_FILES})
+source_group(pch FILES ${PCH})
 source_group(camera FILES ${CAMERA_CALIBRATION} ${CAMERA_PROJECTION})
 source_group(checkerboard FILES ${CHECKERBOARD})
 
@@ -38,16 +45,7 @@ source_group(checkerboard FILES ${CHECKERBOARD})
 set_target_output_directories(${TARGET})
 
 # Set precompiled headers
-target_precompile_headers(${TARGET} PRIVATE
-    <stdio.h>
-    <iostream>
-    <string>
-    <opencv2/opencv.hpp>
-    <opencv2/calib3d/calib3d.hpp>
-    <opencv2/highgui/highgui.hpp>
-    <opencv2/imgproc/imgproc.hpp>
-    [["util.h"]]
-)
+set_target_precompiled_header_msvc(${TARGET} "cvpch.h" "src/cvpch.cpp")
 
 # Add macro specifying assets directory
 # ${ASSETS_DRI} is set in the root 

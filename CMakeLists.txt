@@ -14,6 +14,7 @@ include(cmake/update_submodules.cmake)
 include(cmake/set_startup_project.cmake)
 include(cmake/ignore_precompiled_header.cmake)
 include(cmake/set_target_output_directories.cmake)
+include(cmake/set_target_precompiled_header_msvc.cmake)
 
 # Find OpenCV on system
 find_package(OpenCV REQUIRED)                              
