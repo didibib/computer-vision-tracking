@@ -33,4 +33,9 @@ namespace util
 					{ cbs, cbs, -cbs },
 					{ 0.f, cbs, -cbs }
 	};
+
+	std::vector<cv::Point3f> transform(std::vector<cv::Point3f> const& points, std::vector<float> T, std::vector<float> rotation);
+	void drawAxis(cv::Mat& frame, Camera& cam);
+	void drawCube(cv::Mat& frame, Camera& cam, float t);
+	void drawImage(cv::Mat& frame, std::vector<cv::Point2f> dstPoints, std::string imgPath);
 }
