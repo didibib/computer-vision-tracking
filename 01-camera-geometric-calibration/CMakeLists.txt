@@ -18,6 +18,11 @@ set(BALL
     "src/ball.cpp"
 )
 
+set(SETTINGS
+    "include/settings.h"
+    "src/settings.cpp"
+)
+
 set(ROOT_FILES
     "include/util.h"
     "main.cpp"
@@ -30,6 +35,7 @@ set(SOURCE_LIST
     ${CAMERA_PROJECTION}
     ${CHECKERBOARD}
     ${BALL}
+    ${SETTINGS}
     ${ROOT_FILES}
 )
 
@@ -43,6 +49,7 @@ source_group(pch FILES ${PCH})
 source_group(camera FILES ${CAMERA})
 source_group(checkerboard FILES ${CHECKERBOARD})
 source_group(ball FILES ${BALL})
+source_group(settings FILES ${SETTINGS})
 
 # Set output directories (function found in: cmake/)    
 set_target_output_directories(${TARGET})
@@ -53,6 +60,7 @@ set_target_precompiled_header_msvc(${TARGET} "cvpch.h" "src/cvpch.cpp")
 # Add macro specifying assets directory
 # ${ASSETS_DRI} is set in the root 
 target_compile_definitions(${TARGET} PUBLIC IMAGES_DIR=${IMAGES_DIR})
+target_compile_definitions(${TARGET} PUBLIC SETTINGS_DIR=${SETTINGS_DIR})
 
 target_include_directories(${TARGET} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
