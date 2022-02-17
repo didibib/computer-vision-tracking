@@ -1,6 +1,13 @@
 #include "cvpch.h"
 #include "checkerboard.h"
 
+Checkerboard::Checkerboard(const cv::FileNode& node)
+{
+	node["Checkerboard_Width"] >> mWidth;
+	node["Checkerboard_Height"] >> mHeight;
+	node["Checkerboard_Size"] >> mCm;
+}
+
 // We used the camera calibration from the following tutorial:
 // https://learnopencv.com/camera-calibration-using-opencv/
 int Checkerboard::FindPoints(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints, bool drawCorners) const
@@ -25,7 +32,7 @@ int Checkerboard::FindPoints(cv::Mat& frame, std::vector<cv::Point3f>& objPoints
 		cv::cornerSubPix(gray, imgPoints, cv::Size(7, 7), cv::Size(-1, -1), criteria);
 
 		// Displaying the detected corner points on the checker board
-		if(drawCorners)
+		if (drawCorners)
 			cv::drawChessboardCorners(frame, cv::Size(mWidth, mHeight), imgPoints, success);
 
 		// Defining the world coordinates for 3D points

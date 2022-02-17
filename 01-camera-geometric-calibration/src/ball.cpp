@@ -25,8 +25,8 @@ void Ball::Draw(cv::Mat& frame, Camera const& camera)
 {
 	// 1. Find the ball's center relative to the camera (using camera extrinsics)
 	cv::Mat camToBall = mPosition - camera.Position();
-	std::cout << "ballPos: " << mPosition << std::endl;
-	std::cout << "camPos: " << camera.Position() << std::endl;
+	//std::cout << "ballPos: " << mPosition << std::endl;
+	//std::cout << "camPos: " << camera.Position() << std::endl;
 
 	// 2. Get orthogonal vector from the camera's position to the ball center (cross product between y-axis and direction)
 	cv::Mat zaxis = (cv::Mat_<double>(3, 1) << 0, 0, 1);

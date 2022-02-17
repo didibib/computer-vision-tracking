@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<opencv_storage>
+  <Settings>
+    <!-- Number of inner corners per a item row and column. (square, circle) -->
+    <Checkerboard_Width> 9</Checkerboard_Width>
+    <Checkerboard_Height>6</Checkerboard_Height>
+
+    <!-- The size of a square in some user defined in cm-->
+    <Checkerboard_Size>2.5</Checkerboard_Size>
+
+    <Calibration_Images_Folder>"calibration_3"</Calibration_Images_Folder>
+
+    <!-- The name of the output file. -->
+    <Calibration_Output_File_Name>"camera_calib_data.xml"</Calibration_Output_File_Name>
+  </Settings>
+</opencv_storage>

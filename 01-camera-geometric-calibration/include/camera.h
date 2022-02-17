@@ -4,10 +4,13 @@ class Checkerboard;
 class Camera
 {
 public:	
+	Camera() = delete;
+	Camera(const cv::FileNode& node, Checkerboard);
 	/*
 	   @param The path to image folder
 	*/
 	void Calibrate(Checkerboard const&, std::string path);
+
 	/*
 		Modifies the R and T matrices to accurately represent the current frame  
 	*/
@@ -32,4 +35,5 @@ public:
 
 private:
 	cv::Mat mIntrinsic, mDistCoeffs, mR, mRvec, mT, mExtrinsic;
+	void Save(std::string fileName);
 };

@@ -2,15 +2,44 @@
 #include "checkerboard.h"
 #include "camera.h"
 
+Camera::Camera(const cv::FileNode& node, Checkerboard checkerboard)
+{
+	std::string dataLoc;
+	node["Calibration_Output_File_Name"] >> dataLoc;
+
+	cv::FileStorage calibData(util::SETTINGS_DIR_STR + "/" + dataLoc, cv::FileStorage::READ); // Read the settings
+	if (calibData.isOpened())
+	{
+		printf("Using existing calibration\n");
+		calibData["Intrinsic_Matrix"] >> mIntrinsic;
+		calibData["Distance_Coefficients"] >> mDistCoeffs;
+	}
+	else
+	{
+		std::string folder;
+		node["Calibration_Images_Folder"] >> folder;
+		Calibrate(checkerboard, util::IMAGES_DIR_STR + "/" + folder);
+		// Write to output
+		Save(dataLoc);
+	}
+}
+
+void Camera::Save(std::string fileName)
+{
+	cv::FileStorage fs(util::SETTINGS_DIR_STR + "/" + fileName, cv::FileStorage::WRITE);
+	fs << "Intrinsic_Matrix" << mIntrinsic;
+	fs << "Distance_Coefficients" << mDistCoeffs;
+}
+
 // We used the camera calibration from the following tutorial:
 // https://learnopencv.com/camera-calibration-using-opencv/
 void Camera::Calibrate(Checkerboard const& checkerboard, std::string path)
 {
 	// Creating vector to store vectors of 3D points for each checkerboard image
-	std::vector<std::vector<cv::Point3f> > objPoints;
+	std::vector<std::vector<cv::Point3f>> objPoints;
 
 	// Creating vector to store vectors of 2D points for each checkerboard image
-	std::vector<std::vector<cv::Point2f> > imgPoints;
+	std::vector<std::vector<cv::Point2f>> imgPoints;
 
 	// Extracting path of individual image stored in a given directory
 	std::vector<cv::String> images;
@@ -18,10 +47,8 @@ void Camera::Calibrate(Checkerboard const& checkerboard, std::string path)
 
 	cv::Mat frame;
 
-	double currError = std::numeric_limits<double>::max();
-
 	// Looping over all the images in the directory
-	for (int i{ 0 }; i < images.size() / 2; i++)
+	for (int i = 0; i < 2/*images.size()*/; i++)
 	{
 		frame = cv::imread(images[i]);
 		std::vector<cv::Point3f> objp;
@@ -34,39 +61,69 @@ void Camera::Calibrate(Checkerboard const& checkerboard, std::string path)
 			imgPoints.push_back(imgp);
 
 			auto size = cv::Size(frame.rows, frame.cols);
-			// Our new result matricess
-//			cv::Mat newIntrinsic, newDistCoeffs, newR, newT;
-//			double newError = cv::calibrateCamera(objPoints, imgPoints, size, newIntrinsic, newDistCoeffs, newR, newT);
-//			printf("%d Error: %f\n", i, newError);
-//			if (newError <= currError)
-//			{
-//				// We found a better calibration
-//				mIntrinsic = newIntrinsic;
-//				mDistCoeffs = newDistCoeffs;
-//				currError = newError;
-//				// Possible to imshow the current frame with drawn points
-//				printf("Using image %d\n", i);
-//#ifdef _DEBUG
-//				cv::imshow("Image", frame);
-//				cv::waitKey(1);
-//#endif
-//			}
-//			else
-//			{
-//				// Calibration got worse, so remove this view from our set 
-//				objPoints.pop_back();
-//				imgPoints.pop_back();
-//				printf("Discarding image %d\n", i);
-//			}
+#ifdef _DEBUG
+			cv::imshow("Image", frame);
+			cv::waitKey(1);
+#endif
+			printf("Found checkerboard on image %d\n", i);
+		}
+		else
+		{
+			printf("Did not find checkerboard on image %d\n", i);
 		}
 	}
 
 	cv::destroyAllWindows();
 
+	// CALIBRATION
 	// We calibrate our camera using our known 3D points and respective image points
-	printf("Calibrating camera\n");
-	cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), mIntrinsic, mDistCoeffs, mR, mT);
-	printf("Calibrating finished\n");
+	double currError = cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), mIntrinsic, mDistCoeffs, mR, mT);
+
+	for (int i = 0; i < objPoints.size(); i++)
+	{
+		if (objPoints.size() <= 1)
+			continue;
+
+		// Temporarily remove objPoint
+		auto tempObjPoint = objPoints[i];
+		objPoints[i] = objPoints[objPoints.size() - 1];
+		objPoints.resize(objPoints.size() - 1);
+
+		// Temporarily remove imgPoint
+		auto tempImgPoint = imgPoints[i];
+		imgPoints[i] = imgPoints[imgPoints.size() - 1];
+		imgPoints.resize(imgPoints.size() - 1);
+
+		// Calibrate
+		double newError = cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), mIntrinsic, mDistCoeffs, mR, mT);
+		printf("i: %i, error: %f", i, newError);
+		
+		if (newError <= currError)
+		{
+			// Our new calibration is better, so we can look at the 'old' last element next.
+			// We just moved this element to index i, so we want to re-evaluate the current index.
+			i--;
+			currError = newError;
+			printf("Calibration got better, so discard image %i\n", i);
+		}
+		else
+		{
+			// Old code
+			//objPoints.resize(objPoints.size() + 1);
+			//objPoints[objPoints.size()] = objPoints[i];
+
+			// We want to undo the removal of the points on indices i
+			objPoints.push_back(objPoints[i]);
+			objPoints[i] = tempObjPoint;			
+			imgPoints.push_back(imgPoints[i]);
+			imgPoints[i] = tempImgPoint;
+			printf("Calibration got worse, so keep image %i\n", i);
+
+		}
+	}
+
+	double finalError = cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), mIntrinsic, mDistCoeffs, mR, mT);
+	printf("Calibrated camera with error %f\n", finalError);
 
 	std::cout << "cameraMatrix : " << mIntrinsic << std::endl;
 	std::cout << "distCoeffs : " << mDistCoeffs << std::endl;
@@ -86,7 +143,7 @@ bool Camera::SolveFrame(Checkerboard const& checkerboard, cv::Mat frame)
 	   If not, we can return early.
 	*/
 	if (!checkerboard.FindPoints(frame, objPoints, imgPoints)) return false;
-	
+
 	// Find the extrinsics of our camera (Rotation and Translation). 
 	bool succes = cv::solvePnP(objPoints, imgPoints, mIntrinsic, mDistCoeffs, mRvec, mT);
 	// Create rotation matrix from vector

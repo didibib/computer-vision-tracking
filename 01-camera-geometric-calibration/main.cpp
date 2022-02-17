@@ -5,11 +5,12 @@
 
 const std::string window = "Video";
 
-Checkerboard checkerboard(6, 9, 2.2);
-Camera camera;
-cv::VideoCapture webcam(0);
+Checkerboard* checkerboard;
+Camera* camera;
+// if your webcam does not open, change the number in the constructor below
+cv::VideoCapture webcam(1);
 float t = 0.f;
-Ball ball(cv::Point3d(2, 2, 2), 2);
+Ball ball(cv::Point3d(2, 2, -10), 2);
 
 const std::vector<cv::Point3f> axis {
 				{ 0.f,  0.f,  0.f   },
@@ -38,9 +39,16 @@ void drawImage(cv::Mat& frame, std::vector<cv::Point2f> dstPoints, std::string i
 int main()
 {
 	/*
-		First, we calibrate our camera so we get our intrinsic matrix.
+		Load config file
 	*/
-	camera.Calibrate(checkerboard, util::IMAGES_DIR_STR + "/calibration");
+	cv::FileStorage fs(util::CONFIG, cv::FileStorage::READ);
+	if (!fs.isOpened())
+	{
+		throw "No config file found";
+	}
+	auto node = fs["Settings"];
+	checkerboard = new Checkerboard(node);
+	camera = new Camera(node, *checkerboard);
 
 	printf("Starting camera\n");
 	if (!webcam.isOpened())
@@ -52,11 +60,11 @@ int main()
 		/*
 			Then, for each frame, we calculate our extrinsic matrix (R and T) using our intrinsic matrix.
 		*/
-		if (camera.SolveFrame(checkerboard, frame))
+		if (camera->SolveFrame(*checkerboard, frame))
 		{
-			drawAxis(frame, camera);
+			drawAxis(frame, *camera);
 			//drawCube(frame, camera, t);
-			ball.Draw(frame, camera);
+			ball.Draw(frame, *camera);
 		}
 
 		imshow(window, frame);
@@ -65,6 +73,8 @@ int main()
 	}
 
 	webcam.release();
+	delete checkerboard;
+	delete camera;
 	return 0;
 }
 
@@ -103,7 +113,7 @@ void drawCube(cv::Mat& frame, Camera& cam, float t)
 	cv::line(frame, imgPoints[1], imgPoints[5], util::white, 4);
 	cv::line(frame, imgPoints[2], imgPoints[6], util::white, 4);
 	cv::line(frame, imgPoints[3], imgPoints[7], util::white, 4);
-}
+} 
 
 /*
 	@param Points that need to be transformed

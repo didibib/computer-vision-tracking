@@ -3,12 +3,9 @@
 class Checkerboard
 {
 public:
-	Checkerboard(int width, int height, float cm)
-	{
-		mWidth = width;
-		mHeight = height;
-		mCm = cm;		
-	}
+	Checkerboard() = delete;
+	Checkerboard(const cv::FileNode& node);
+
 	int GetWidth() const { return mWidth; }
 	int GetHeight() const { return mHeight; }
 	float GetCm() const { return mCm; }

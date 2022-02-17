@@ -7,6 +7,7 @@ namespace util
 
 	const static std::string IMAGES_DIR_STR = TOSTRING(IMAGES_DIR);
 	const static std::string SETTINGS_DIR_STR = TOSTRING(SETTINGS_DIR);
+	const static std::string CONFIG = SETTINGS_DIR_STR + "/config.xml";
 
 	const cv::Scalar red(0, 0, 255);
 	const cv::Scalar green(0, 255, 0);
