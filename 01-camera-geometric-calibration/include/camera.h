@@ -16,23 +16,20 @@ public:
 	/*
 		Projects the given points to the world points 
 	*/
-	std::vector<cv::Point2f> Project(std::vector<cv::Point3f> const& objPoints);
+	std::vector<cv::Point2f> Project(std::vector<cv::Point3f> const& objPoints) const;
 
 	/*
 	   @return The intrinsic floating-point camera matrix.
 	*/
-	cv::Mat Intrinsic() { return mIntrinsic; }
+	cv::Mat Intrinsic() const { return mIntrinsic; }
 	/*
-	   @return the Rotation matrix R and Translation matrix T concatenate together, like [R | T].
+	   @return the Rotation matrix R and Translation matrix T concatenated together, like [R | T].
 		Also known as the extrinsic floating-point camera matrix.
 	*/
-	cv::Mat Extrinsic()
-	{
-		cv::Mat extrinsic;
-		// maybe we need to make this 4x4 instead of 3x4? 
-		cv::hconcat(mR, mT, extrinsic);
-		return extrinsic;
-	}
+	cv::Mat Extrinsic() const { return mExtrinsic; }
+
+	cv::Mat Position() const { return mT; }
+
 private:
-	cv::Mat mIntrinsic, mDistCoeffs, mR, mT;
+	cv::Mat mIntrinsic, mDistCoeffs, mR, mRvec, mT, mExtrinsic;
 };

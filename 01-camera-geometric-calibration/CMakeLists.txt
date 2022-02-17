@@ -13,6 +13,11 @@ set(CHECKERBOARD
     "src/checkerboard.cpp"
 )
 
+set(BALL
+    "include/ball.h"
+    "src/ball.cpp"
+)
+
 set(ROOT_FILES
     "include/util.h"
     "main.cpp"
@@ -24,6 +29,7 @@ set(SOURCE_LIST
     ${CAMERA_CALIBRATION}
     ${CAMERA_PROJECTION}
     ${CHECKERBOARD}
+    ${BALL}
     ${ROOT_FILES}
 )
 
@@ -36,6 +42,7 @@ source_group(\\ FILES ${ROOT_FILES})
 source_group(pch FILES ${PCH})
 source_group(camera FILES ${CAMERA})
 source_group(checkerboard FILES ${CHECKERBOARD})
+source_group(ball FILES ${BALL})
 
 # Set output directories (function found in: cmake/)    
 set_target_output_directories(${TARGET})
