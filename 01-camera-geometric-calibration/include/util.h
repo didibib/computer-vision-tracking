@@ -13,4 +13,24 @@ namespace util
 	const cv::Scalar green(0, 255, 0);
 	const cv::Scalar blue(255, 0, 0);
 	const cv::Scalar white(255, 255, 255);
+	const cv::Scalar gray(127, 127, 127);
+
+	const std::vector<cv::Point3f> axis{
+				{ 0.f,  0.f,  0.f   },
+				{ 10.f, 0.f,  0.f   },
+				{ 0.f,  10.f, 0.f   },
+				{ 0.f,  0.f,  -10.f }
+	};
+
+	const float cbs = 10.f;
+	const std::vector<cv::Point3f> cube{
+					{ 0.f, 0.f,  0.f },
+					{ cbs, 0.f,  0.f },
+					{ cbs, cbs,  0.f },
+					{ 0.f, cbs,  0.f },
+					{ 0.f, 0.f, -cbs },
+					{ cbs, 0.f, -cbs },
+					{ cbs, cbs, -cbs },
+					{ 0.f, cbs, -cbs }
+	};
 }

@@ -10,25 +10,11 @@ Camera* camera;
 // if your webcam does not open, change the number in the constructor below
 cv::VideoCapture webcam(1);
 float t = 0.f;
-Ball ball(cv::Point3d(2, 2, -10), 2);
-
-const std::vector<cv::Point3f> axis {
-				{ 0.f,  0.f,  0.f   },
-				{ 10.f, 0.f,  0.f   },
-				{ 0.f,  10.f, 0.f   },
-				{ 0.f,  0.f,  -10.f }
-};
-
-const float cbs = 10.f;
-const std::vector<cv::Point3f> cube {
-				{ 0.f, 0.f,  0.f },
-				{ cbs, 0.f,  0.f },
-				{ cbs, cbs,  0.f },
-				{ 0.f, cbs,  0.f },
-				{ 0.f, 0.f, -cbs },
-				{ cbs, 0.f, -cbs },
-				{ cbs, cbs, -cbs },
-				{ 0.f, cbs, -cbs }
+std::vector<Ball> balls{
+	{cv::Point3d(0, 0, -10), 4, util::red},
+	{cv::Point3d(5, 1, -5), 2, util::blue},
+	{cv::Point3d(-3, -4, -2), 2, util::green},
+	{cv::Point3d(1, 1, -1), 2, util::gray},
 };
 
 std::vector<cv::Point3f> transform(std::vector<cv::Point3f> const& points, std::vector<float> T, std::vector<float> rotation);
@@ -63,8 +49,16 @@ int main()
 		if (camera->SolveFrame(*checkerboard, frame))
 		{
 			drawAxis(frame, *camera);
+
+			for (int i = 0; i < balls.size(); i++)
+				balls[i].Update(t, *camera);
+
+			std::sort(balls.begin(), balls.end(), ballDepthSort);
+
+			for (int i = 0; i < balls.size(); i++)
+				balls[i].Draw(frame, *camera);
 			//drawCube(frame, camera, t);
-			ball.Draw(frame, *camera);
+			//ball.Draw(frame, *camera);
 		}
 
 		imshow(window, frame);
@@ -80,7 +74,7 @@ int main()
 
 void drawAxis(cv::Mat& frame, Camera& cam)
 {
-	auto imgPoints = cam.Project(axis);
+	auto imgPoints = cam.Project(util::axis);
 	// Draw the x-axis 
 	cv::line(frame, imgPoints[0], imgPoints[1], util::red, 4);
 	// Draw the y-axis 
@@ -93,7 +87,7 @@ void drawCube(cv::Mat& frame, Camera& cam, float t)
 {
 	auto T = std::vector<float>{ sin(t) * 10, cos(t) * 10, 0.f };
 	auto R = std::vector<float>{ t, t, 2 * t };
-	std::vector<cv::Point2f> imgPoints = cam.Project(transform(cube, T, R));
+	std::vector<cv::Point2f> imgPoints = cam.Project(transform(util::cube, T, R));
 
 	drawImage(frame, { imgPoints[4], imgPoints[5], imgPoints[0], imgPoints[1] }, util::IMAGES_DIR_STR + "/square-face.jpg");
 
@@ -134,9 +128,9 @@ std::vector<cv::Point3f> transform(std::vector<cv::Point3f> const& points, std::
 	vconcat(M, filler, M);
 
 	std::vector<cv::Point3f> transPoints;
-	for (int i = 0; i < cube.size(); i++)
+	for (int i = 0; i < points.size(); i++)
 	{
-		cv::Mat point = M * (cv::Mat_<float>(4, 1) << cube[i].x, cube[i].y, cube[i].z, 1);
+		cv::Mat point = M * (cv::Mat_<float>(4, 1) << points[i].x, points[i].y, points[i].z, 1);
 		transPoints.push_back(cv::Point3f(point.at<float>(0, 0), point.at<float>(1, 0), point.at<float>(2, 0)));
 	}
 	return transPoints;

@@ -2,15 +2,18 @@
 #include "ball.h"
 #include "camera.h"
 
-Ball::Ball(cv::Point3d pos, int radius)
+Ball::Ball(cv::Point3d pos, int radius, cv::Scalar color)
 {
 	mPosition = (cv::Mat_<double>(3, 1) << pos.x, pos.y, pos.z);
 	mRadius = radius;
+	mColor = color;
 }
 
-void Ball::Update(float t)
+void Ball::Update(float t, Camera& camera)
 {
-
+	mCamToBall = mPosition - camera.Position();
+	cv::Point3f p(mCamToBall.at<double>(0), mCamToBall.at<double>(1), mCamToBall.at<double>(2));
+	mDistToCam = sqrtf(p.x * p.x + p.y * p.y + p.z * p.z);
 }
 
 /*
@@ -23,17 +26,12 @@ void Ball::Update(float t)
 */
 void Ball::Draw(cv::Mat& frame, Camera const& camera)
 {
-	// 1. Find the ball's center relative to the camera (using camera extrinsics)
-	cv::Mat camToBall = mPosition - camera.Position();
-	//std::cout << "ballPos: " << mPosition << std::endl;
-	//std::cout << "camPos: " << camera.Position() << std::endl;
-
-	// 2. Get orthogonal vector from the camera's position to the ball center (cross product between y-axis and direction)
+	// Get orthogonal vector from the camera's position to the ball center (cross product between y-axis and direction)
 	cv::Mat zaxis = (cv::Mat_<double>(3, 1) << 0, 0, 1);
-	cv::Mat ortho = camToBall.cross(zaxis);
+	cv::Mat ortho = mCamToBall.cross(zaxis);
 	double length = sqrt(ortho.dot(ortho));
 
-	// 3. Make the length of this vector equal to the ball's radius
+	//  Make the length of this vector equal to the ball's radius
 	cv::Mat ballSurfacePos = mPosition + (ortho / length) * mRadius;
 
 	cv::Point3f center3D(mPosition.at<double>(0), mPosition.at<double>(1), mPosition.at<double>(2));
@@ -46,5 +44,5 @@ void Ball::Draw(cv::Mat& frame, Camera const& camera)
 
 	cv::Point2f diff = surface2D - center2D;
 	double projectedRadius = sqrt(diff.x * diff.x + diff.y * diff.y);
-	cv::circle(frame, center2D, projectedRadius, util::blue, -1);
+	cv::circle(frame, center2D, projectedRadius, mColor, -1);
 }

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <limits.h>
+#include <algorithm>
 // OpenCV headers
 #include <opencv2/opencv.hpp>
 #include <opencv2/calib3d.hpp>
