@@ -8,7 +8,7 @@
     <!-- The size of a square in some user defined in cm-->
     <Checkerboard_Size>2.5</Checkerboard_Size>
 
-    <Calibration_Images_Folder>"calibration_3"</Calibration_Images_Folder>
+    <Calibration_Images_Folder>"calibration_4"</Calibration_Images_Folder>
 
     <!-- The name of the output file. -->
     <Calibration_Output_File_Name>"camera_calib_data.xml"</Calibration_Output_File_Name>

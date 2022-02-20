@@ -49,7 +49,7 @@ void Camera::Calibrate(Checkerboard const& checkerboard, std::string path)
 	// shuffle the images so that they are in a new order each time the program is run
 	auto rd = std::random_device{};
 	auto rng = std::default_random_engine{ rd() };
-	//std::shuffle(images.begin(), images.end(), rng);
+	std::shuffle(images.begin(), images.end(), rng);
 
 	cv::Mat frame;
 
@@ -88,7 +88,7 @@ void Camera::Calibrate(Checkerboard const& checkerboard, std::string path)
 	
 	std::vector<int> badImageIndices;
 
-	for (int i = 0; i < objPoints.size(); i++)
+	for (int i = 0; i < objPoints.size()-1; i++)
 	{
 		if (objPoints.size() <= 1)
 			continue;
@@ -105,14 +105,15 @@ void Camera::Calibrate(Checkerboard const& checkerboard, std::string path)
 
 		// Calibrate
 		double newError = cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), mIntrinsic, mDistCoeffs, mR, mT);
-
-		if (newError <= currError)
+		printf("Error: %f", newError);
+		if (newError <= currError - 0.01)
 		{
 			// Found a better calibration, so save the index of the 'bad' image
 			printf("Potentially better calibration found by leaving out image %i\n", i);
 			printf("Objpoints.size() = %i\n", objPoints.size());
 			badImageIndices.push_back(i);
 		}
+
 
 		// Restore the left out image on it's original index
 		objPoints.push_back(objPoints[i]);
