@@ -17,7 +17,7 @@ private:
 	cv::Scalar mColor;
 };
 
-static bool ballDepthSort(Ball i, Ball j)
+static bool BallDepthSort(Ball i, Ball j)
 {
 	return i.GetDistToCam() > j.GetDistToCam();
 }

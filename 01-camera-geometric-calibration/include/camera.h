@@ -31,7 +31,7 @@ public:
 	*/
 	cv::Mat Extrinsic() const { return mExtrinsic; }
 
-	cv::Mat Position() const { return mT; }
+	cv::Mat Position() const { return -1 * mT; }
 
 private:
 	cv::Mat mIntrinsic, mDistCoeffs, mR, mRvec, mT, mExtrinsic;

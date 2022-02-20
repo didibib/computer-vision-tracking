@@ -2,6 +2,7 @@
 #include "checkerboard.h"
 #include "camera.h"
 #include "ball.h"
+#include "line_segment.h"
 
 const std::string window = "Video";
 
@@ -15,6 +16,23 @@ std::vector<Ball> balls{
 	{cv::Point3d(5, 1, -5), 2, util::blue},
 	{cv::Point3d(-3, -4, -2), 2, util::green},
 	{cv::Point3d(1, 1, -1), 2, util::gray},
+};
+
+std::vector<LineSegment> cubeSegments{
+	{ util::cube[0], util::cube[1], util::white },
+	{ util::cube[1], util::cube[2], util::white  },
+	{ util::cube[2], util::cube[3], util::white  },
+	{ util::cube[3], util::cube[0], util::white  },
+
+	{ util::cube[4], util::cube[5], util::white  },
+	{ util::cube[5], util::cube[6], util::white  },
+	{ util::cube[6], util::cube[7], util::white  },
+	{ util::cube[7], util::cube[4], util::white  },
+
+	{ util::cube[0], util::cube[4], util::white  },
+	{ util::cube[1], util::cube[5], util::white  },
+	{ util::cube[2], util::cube[6], util::white  },
+	{ util::cube[3], util::cube[7], util::white  }
 };
 
 std::vector<cv::Point3f> transform(std::vector<cv::Point3f> const& points, std::vector<float> T, std::vector<float> rotation);
@@ -50,13 +68,7 @@ int main()
 		{
 			drawAxis(frame, *camera);
 
-			for (int i = 0; i < balls.size(); i++)
-				balls[i].Update(t, *camera);
-
-			std::sort(balls.begin(), balls.end(), ballDepthSort);
-
-			for (int i = 0; i < balls.size(); i++)
-				balls[i].Draw(frame, *camera);
+			drawCube(frame, *camera, t);
 			//drawCube(frame, camera, t);
 			//ball.Draw(frame, *camera);
 		}
@@ -83,58 +95,52 @@ void drawAxis(cv::Mat& frame, Camera& cam)
 	cv::line(frame, imgPoints[0], imgPoints[3], util::blue, 4);
 }
 
+void drawBalls(cv::Mat& frame, Camera& cam, float t)
+{
+	for (int i = 0; i < balls.size(); i++)
+		balls[i].Update(t, *camera);
+
+	std::sort(balls.begin(), balls.end(), BallDepthSort);
+
+	for (int i = 0; i < balls.size(); i++)
+		balls[i].Draw(frame, *camera);
+}
+
 void drawCube(cv::Mat& frame, Camera& cam, float t)
 {
 	auto T = std::vector<float>{ sin(t) * 10, cos(t) * 10, 0.f };
 	auto R = std::vector<float>{ t, t, 2 * t };
-	std::vector<cv::Point2f> imgPoints = cam.Project(transform(util::cube, T, R));
+	auto M = util::createTransform(T, R);
 
-	drawImage(frame, { imgPoints[4], imgPoints[5], imgPoints[0], imgPoints[1] }, util::IMAGES_DIR_STR + "/square-face.jpg");
+	for (int i = 0; i < cubeSegments.size(); i++)
+		cubeSegments[i].Update(cam, M);
 
-	// Draw the cube
-	// Bottom frame
-	cv::line(frame, imgPoints[0], imgPoints[1], util::white, 4);
-	cv::line(frame, imgPoints[1], imgPoints[2], util::white, 4);
-	cv::line(frame, imgPoints[2], imgPoints[3], util::white, 4);
-	cv::line(frame, imgPoints[3], imgPoints[0], util::white, 4);
-	// Top frame								
-	cv::line(frame, imgPoints[4], imgPoints[5], util::white, 4);
-	cv::line(frame, imgPoints[5], imgPoints[6], util::white, 4);
-	cv::line(frame, imgPoints[6], imgPoints[7], util::white, 4);
-	cv::line(frame, imgPoints[7], imgPoints[4], util::white, 4);
-	// Connecting pillars						
-	cv::line(frame, imgPoints[0], imgPoints[4], util::white, 4);
-	cv::line(frame, imgPoints[1], imgPoints[5], util::white, 4);
-	cv::line(frame, imgPoints[2], imgPoints[6], util::white, 4);
-	cv::line(frame, imgPoints[3], imgPoints[7], util::white, 4);
+	std::sort(cubeSegments.begin(), cubeSegments.end(), LineSegmentDepthSort);
+
+	for (int i = 0; i < cubeSegments.size(); i++)
+		cubeSegments[i].Draw(frame, cam);
+
+	//drawImage(frame, { imgPoints[4], imgPoints[5], imgPoints[0], imgPoints[1] }, util::IMAGES_DIR_STR + "/square-face.jpg");
+
+	//// Draw the cube
+	//// Bottom frame
+	//cv::line(frame, imgPoints[0], imgPoints[1], util::white, 4);
+	//cv::line(frame, imgPoints[1], imgPoints[2], util::white, 4);
+	//cv::line(frame, imgPoints[2], imgPoints[3], util::white, 4);
+	//cv::line(frame, imgPoints[3], imgPoints[0], util::white, 4);
+	//// Top frame								
+	//cv::line(frame, imgPoints[4], imgPoints[5], util::white, 4);
+	//cv::line(frame, imgPoints[5], imgPoints[6], util::white, 4);
+	//cv::line(frame, imgPoints[6], imgPoints[7], util::white, 4);
+	//cv::line(frame, imgPoints[7], imgPoints[4], util::white, 4);
+	//// Connecting pillars						
+	//cv::line(frame, imgPoints[0], imgPoints[4], util::white, 4);
+	//cv::line(frame, imgPoints[1], imgPoints[5], util::white, 4);
+	//cv::line(frame, imgPoints[2], imgPoints[6], util::white, 4);
+	//cv::line(frame, imgPoints[3], imgPoints[7], util::white, 4);
 } 
 
-/*
-	@param Points that need to be transformed
-	@param 3x1 translation vector
-	@param 3x1 rotation vector
-*/
-std::vector<cv::Point3f> transform(std::vector<cv::Point3f> const& points, std::vector<float> translation, std::vector<float> rotation)
-{
-	// Create rotation matrix from rotation vector
-	cv::Mat R;
-	cv::Rodrigues(rotation, R);
 
-	cv::Mat T = cv::Mat(translation);
-	cv::Mat M;
-	cv::Mat filler = (cv::Mat_<float>(1, 4) << 0, 0, 0, 1);
-
-	hconcat(R, T, M);
-	vconcat(M, filler, M);
-
-	std::vector<cv::Point3f> transPoints;
-	for (int i = 0; i < points.size(); i++)
-	{
-		cv::Mat point = M * (cv::Mat_<float>(4, 1) << points[i].x, points[i].y, points[i].z, 1);
-		transPoints.push_back(cv::Point3f(point.at<float>(0, 0), point.at<float>(1, 0), point.at<float>(2, 0)));
-	}
-	return transPoints;
-}
 
 // https://medium.com/acmvit/how-to-project-an-image-in-perspective-view-of-a-background-image-opencv-python-d101bdf966bc
 void drawImage(cv::Mat& frame, std::vector<cv::Point2f> dstPoints, std::string imgPath)

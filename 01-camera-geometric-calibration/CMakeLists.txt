@@ -18,6 +18,10 @@ set(BALL
     "src/ball.cpp"
 )
 
+set(LINE_SEGMENT
+    "include/line_segment.h"
+)
+
 set(SETTINGS
     "include/settings.h"
 )
@@ -34,6 +38,7 @@ set(SOURCE_LIST
     ${CAMERA_PROJECTION}
     ${CHECKERBOARD}
     ${BALL}
+    ${LINE_SEGMENT}
     ${SETTINGS}
     ${ROOT_FILES}
 )
@@ -48,6 +53,7 @@ source_group(pch FILES ${PCH})
 source_group(camera FILES ${CAMERA})
 source_group(checkerboard FILES ${CHECKERBOARD})
 source_group(ball FILES ${BALL})
+source_group(line_segment FILES ${LINE_SEGMENT})
 source_group(settings FILES ${SETTINGS})
 
 # Set output directories (function found in: cmake/)
