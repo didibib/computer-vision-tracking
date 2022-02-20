@@ -83,4 +83,8 @@ namespace util
 		cv::Mat pointMat = M * (cv::Mat_<float>(4, 1) << point.x, point.y, point.z, 1);
 		return cv::Point3f(pointMat.at<float>(0, 0), pointMat.at<float>(1, 0), pointMat.at<float>(2, 0));
 	}
+
+	void drawAxis(cv::Mat& frame, Camera& cam);
+	void drawCube(cv::Mat& frame, Camera& cam, float t);
+	void drawImage(cv::Mat& frame, std::vector<cv::Point2f> dstPoints, std::string imgPath);
 }

@@ -22,12 +22,9 @@ set(LINE_SEGMENT
     "include/line_segment.h"
 )
 
-set(SETTINGS
-    "include/settings.h"
-)
-
 set(ROOT_FILES
     "include/util.h"
+    "src/draw.cpp"
     "main.cpp"
 )
 
@@ -39,7 +36,6 @@ set(SOURCE_LIST
     ${CHECKERBOARD}
     ${BALL}
     ${LINE_SEGMENT}
-    ${SETTINGS}
     ${ROOT_FILES}
 )
 
@@ -54,7 +50,6 @@ source_group(camera FILES ${CAMERA})
 source_group(checkerboard FILES ${CHECKERBOARD})
 source_group(ball FILES ${BALL})
 source_group(line_segment FILES ${LINE_SEGMENT})
-source_group(settings FILES ${SETTINGS})
 
 # Set output directories (function found in: cmake/)
 set_target_output_directories(${TARGET})

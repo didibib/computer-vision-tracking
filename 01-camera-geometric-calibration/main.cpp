@@ -10,7 +10,9 @@ Checkerboard* checkerboard;
 Camera* camera;
 // if your webcam does not open, change the number in the constructor below
 cv::VideoCapture webcam(1);
+
 float t = 0.f;
+
 std::vector<Ball> balls{
 	{cv::Point3d(0, 0, -10), 4, util::red},
 	{cv::Point3d(5, 1, -5), 2, util::blue},
@@ -66,7 +68,7 @@ int main()
 		*/
 		if (camera->SolveFrame(*checkerboard, frame))
 		{
-			drawAxis(frame, *camera);
+			util::drawAxis(frame, *camera);
 
 			drawCube(frame, *camera, t);
 			//drawCube(frame, camera, t);
@@ -87,11 +89,11 @@ int main()
 void drawAxis(cv::Mat& frame, Camera& cam)
 {
 	auto imgPoints = cam.Project(util::axis);
-	// Draw the x-axis 
+	// Draw the x-axis
 	cv::line(frame, imgPoints[0], imgPoints[1], util::red, 4);
-	// Draw the y-axis 
+	// Draw the y-axis
 	cv::line(frame, imgPoints[0], imgPoints[2], util::green, 4);
-	// Draw the z-axis 
+	// Draw the z-axis
 	cv::line(frame, imgPoints[0], imgPoints[3], util::blue, 4);
 }
 
@@ -128,17 +130,17 @@ void drawCube(cv::Mat& frame, Camera& cam, float t)
 	//cv::line(frame, imgPoints[1], imgPoints[2], util::white, 4);
 	//cv::line(frame, imgPoints[2], imgPoints[3], util::white, 4);
 	//cv::line(frame, imgPoints[3], imgPoints[0], util::white, 4);
-	//// Top frame								
+	//// Top frame
 	//cv::line(frame, imgPoints[4], imgPoints[5], util::white, 4);
 	//cv::line(frame, imgPoints[5], imgPoints[6], util::white, 4);
 	//cv::line(frame, imgPoints[6], imgPoints[7], util::white, 4);
 	//cv::line(frame, imgPoints[7], imgPoints[4], util::white, 4);
-	//// Connecting pillars						
+	//// Connecting pillars
 	//cv::line(frame, imgPoints[0], imgPoints[4], util::white, 4);
 	//cv::line(frame, imgPoints[1], imgPoints[5], util::white, 4);
 	//cv::line(frame, imgPoints[2], imgPoints[6], util::white, 4);
 	//cv::line(frame, imgPoints[3], imgPoints[7], util::white, 4);
-} 
+}
 
 
 
