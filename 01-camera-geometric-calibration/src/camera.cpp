@@ -43,12 +43,18 @@ void Camera::Calibrate(Checkerboard const& checkerboard, std::string path)
 
 	// Extracting path of individual image stored in a given directory
 	std::vector<cv::String> images;
+
 	cv::glob(path, images);
+
+	// shuffle the images so that they are in a new order each time the program is run
+	auto rd = std::random_device{};
+	auto rng = std::default_random_engine{ rd() };
+	//std::shuffle(images.begin(), images.end(), rng);
 
 	cv::Mat frame;
 
 	// Looping over all the images in the directory
-	for (int i = 0; i < 2/*images.size()*/; i++)
+	for (int i = 0; i < images.size(); i++)
 	{
 		frame = cv::imread(images[i]);
 		std::vector<cv::Point3f> objp;
@@ -78,6 +84,9 @@ void Camera::Calibrate(Checkerboard const& checkerboard, std::string path)
 	// CALIBRATION
 	// We calibrate our camera using our known 3D points and respective image points
 	double currError = cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), mIntrinsic, mDistCoeffs, mR, mT);
+	printf("Calibration starts with error %f\n", currError);
+	
+	std::vector<int> badImageIndices;
 
 	for (int i = 0; i < objPoints.size(); i++)
 	{
@@ -96,31 +105,32 @@ void Camera::Calibrate(Checkerboard const& checkerboard, std::string path)
 
 		// Calibrate
 		double newError = cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), mIntrinsic, mDistCoeffs, mR, mT);
-		printf("i: %i, error: %f", i, newError);
-		
+
 		if (newError <= currError)
 		{
-			// Our new calibration is better, so we can look at the 'old' last element next.
-			// We just moved this element to index i, so we want to re-evaluate the current index.
-			i--;
-			currError = newError;
-			printf("Calibration got better, so discard image %i\n", i);
+			// Found a better calibration, so save the index of the 'bad' image
+			printf("Potentially better calibration found by leaving out image %i\n", i);
+			printf("Objpoints.size() = %i\n", objPoints.size());
+			badImageIndices.push_back(i);
 		}
-		else
-		{
-			// Old code
-			//objPoints.resize(objPoints.size() + 1);
-			//objPoints[objPoints.size()] = objPoints[i];
 
-			// We want to undo the removal of the points on indices i
-			objPoints.push_back(objPoints[i]);
-			objPoints[i] = tempObjPoint;			
-			imgPoints.push_back(imgPoints[i]);
-			imgPoints[i] = tempImgPoint;
-			printf("Calibration got worse, so keep image %i\n", i);
-
-		}
+		// Restore the left out image on it's original index
+		objPoints.push_back(objPoints[i]);
+		objPoints[i] = tempObjPoint;
+		imgPoints.push_back(imgPoints[i]);
+		imgPoints[i] = tempImgPoint;
 	}
+
+	// Delete the bad images
+	for (int i = badImageIndices.size() - 1; i >= 0; i--)
+	{
+		int index = badImageIndices[i];
+		objPoints[index] = objPoints[objPoints.size() - 1];
+		objPoints.resize(objPoints.size() - 1);
+		imgPoints[index] = imgPoints[imgPoints.size() - 1];
+		imgPoints.resize(imgPoints.size() - 1);
+	}
+	
 
 	double finalError = cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), mIntrinsic, mDistCoeffs, mR, mT);
 	printf("Calibrated camera with error %f\n", finalError);

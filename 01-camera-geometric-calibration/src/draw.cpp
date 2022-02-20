@@ -2,13 +2,19 @@
 #include "camera.h"
 
 namespace util
-{
+{	
 	/*
 		@param Points that need to be transformed
 		@param 3x1 translation vector
 		@param 3x1 rotation vector
 	*/
 	std::vector<cv::Point3f> transform(std::vector<cv::Point3f> const& points, std::vector<float> translation, std::vector<float> rotation)
+	{
+		cv::Mat M = createTransform(translation, rotation);
+		return transform(points, M);
+	}
+
+	cv::Mat createTransform(std::vector<float> translation, std::vector<float> rotation)
 	{
 		// Create rotation matrix from rotation vector
 		cv::Mat R;
@@ -21,6 +27,15 @@ namespace util
 		hconcat(R, T, M);
 		vconcat(M, filler, M);
 
+		return M;
+	}
+
+	/*
+		@param Points that need to be transformed
+		@param 4x4 transformation matrix
+	*/
+	std::vector<cv::Point3f> transform(std::vector<cv::Point3f> const& points, cv::Mat M)
+	{
 		std::vector<cv::Point3f> transPoints;
 		for (int i = 0; i < points.size(); i++)
 		{
@@ -28,6 +43,16 @@ namespace util
 			transPoints.push_back(cv::Point3f(point.at<float>(0, 0), point.at<float>(1, 0), point.at<float>(2, 0)));
 		}
 		return transPoints;
+	}
+
+	/*
+		@param Points that need to be transformed
+		@param 4x4 transformation matrix
+	*/
+	cv::Point3f transform(cv::Point3f const& point, cv::Mat M)
+	{
+		cv::Mat pointMat = M * (cv::Mat_<float>(4, 1) << point.x, point.y, point.z, 1);
+		return cv::Point3f(pointMat.at<float>(0, 0), pointMat.at<float>(1, 0), pointMat.at<float>(2, 0));
 	}
 
 	void drawAxis(cv::Mat& frame, Camera& cam)
@@ -39,32 +64,6 @@ namespace util
 		cv::line(frame, imgPoints[0], imgPoints[2], util::green, 2);
 		// Draw the z-axis 
 		cv::line(frame, imgPoints[0], imgPoints[3], util::blue, 2);
-	}
-
-	void drawCube(cv::Mat& frame, Camera& cam, float t)
-	{
-		auto T = std::vector<float>{ sin(t) * 10, cos(t) * 10, 0.f };
-		auto R = std::vector<float>{ t, t, 2 * t };
-		std::vector<cv::Point2f> imgPoints = cam.Project(transform(util::cube, T, R));
-
-		drawImage(frame, { imgPoints[4], imgPoints[5], imgPoints[0], imgPoints[1] }, util::IMAGES_DIR_STR + "/square-face.jpg");
-
-		// Draw the cube
-		// Bottom frame
-		cv::line(frame, imgPoints[0], imgPoints[1], util::white, 4);
-		cv::line(frame, imgPoints[1], imgPoints[2], util::white, 4);
-		cv::line(frame, imgPoints[2], imgPoints[3], util::white, 4);
-		cv::line(frame, imgPoints[3], imgPoints[0], util::white, 4);
-		// Top frame								
-		cv::line(frame, imgPoints[4], imgPoints[5], util::white, 4);
-		cv::line(frame, imgPoints[5], imgPoints[6], util::white, 4);
-		cv::line(frame, imgPoints[6], imgPoints[7], util::white, 4);
-		cv::line(frame, imgPoints[7], imgPoints[4], util::white, 4);
-		// Connecting pillars						
-		cv::line(frame, imgPoints[0], imgPoints[4], util::white, 4);
-		cv::line(frame, imgPoints[1], imgPoints[5], util::white, 4);
-		cv::line(frame, imgPoints[2], imgPoints[6], util::white, 4);
-		cv::line(frame, imgPoints[3], imgPoints[7], util::white, 4);
 	}
 
 	// https://medium.com/acmvit/how-to-project-an-image-in-perspective-view-of-a-background-image-opencv-python-d101bdf966bc
@@ -95,4 +94,5 @@ namespace util
 		// Combine the frame with the warped image
 		cv::bitwise_or(frameMasked, warped, frame);
 	}
+
 }
