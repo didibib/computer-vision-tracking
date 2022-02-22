@@ -13,32 +13,28 @@
 #include "scene_renderer.h"
 #include "util.h"
 
-using namespace nl_uu_science_gmt;
-using namespace std;
-using namespace cv;
-
 namespace nl_uu_science_gmt
 {
 
 	/**
 	 * Main constructor, initialized all cameras
 	 */
-	VoxelReconstruction::VoxelReconstruction(const string& dp, const int cva) :
+	VoxelReconstruction::VoxelReconstruction(const std::string& dp, const int cva) :
 		m_data_path(dp), m_cam_views_amount(cva)
 	{
-		const string cam_path = m_data_path + "cam";
+		const std::string cam_path = m_data_path + "cam";
 
 		for (int v = 0; v < m_cam_views_amount; ++v)
 		{
-			stringstream full_path;
+			std::stringstream full_path;
 			full_path << cam_path << (v + 1) << PATH_SEP;
 
 			/*
 			 * Assert that there's a background image or video file and \
 			 * that there's a video file
 			 */
-			std::cout << full_path.str() << Util::BackgroundImageFile << std::endl;
 			std::cout << full_path.str() << Util::VideoFile << std::endl;
+			std::cout << full_path.str() << Util::BackgroundImageFile << std::endl;
 			assert(
 				Util::fexists(full_path.str() + Util::BackgroundImageFile)
 				&&
@@ -74,23 +70,23 @@ namespace nl_uu_science_gmt
 	 */
 	void VoxelReconstruction::showKeys()
 	{
-		cout << "VoxelReconstruction v" << VERSION << endl << endl;
-		cout << "Use these keys:" << endl;
-		cout << "q       : Quit" << endl;
-		cout << "p       : Pause" << endl;
-		cout << "b       : Frame back" << endl;
-		cout << "n       : Next frame" << endl;
-		cout << "r       : Rotate voxel space" << endl;
-		cout << "s       : Show/hide arcball wire sphere (Linux only)" << endl;
-		cout << "v       : Show/hide voxel space box" << endl;
-		cout << "g       : Show/hide ground plane" << endl;
-		cout << "c       : Show/hide cameras" << endl;
-		cout << "i       : Show/hide camera numbers (Linux only)" << endl;
-		cout << "o       : Show/hide origin" << endl;
-		cout << "t       : Top view" << endl;
-		cout << "1,2,3,4 : Switch camera #" << endl << endl;
-		cout << "Zoom with the scrollwheel while on the 3D scene" << endl;
-		cout << "Rotate the 3D scene with left click+drag" << endl << endl;
+		std::cout << "VoxelReconstruction v" << VERSION << std::endl << std::endl;
+		std::cout << "Use these keys:" << std::endl;
+		std::cout << "q       : Quit" << std::endl;
+		std::cout << "p       : Pause" << std::endl;
+		std::cout << "b       : Frame back" << std::endl;
+		std::cout << "n       : Next frame" << std::endl;
+		std::cout << "r       : Rotate voxel space" << std::endl;
+		std::cout << "s       : Show/hide arcball wire sphere (Linux only)" << std::endl;
+		std::cout << "v       : Show/hide voxel space box" << std::endl;
+		std::cout << "g       : Show/hide ground plane" << std::endl;
+		std::cout << "c       : Show/hide cameras" << std::endl;
+		std::cout << "i       : Show/hide camera numbers (Linux only)" << std::endl;
+		std::cout << "o       : Show/hide origin" << std::endl;
+		std::cout << "t       : Top view" << std::endl;
+		std::cout << "1,2,3,4 : Switch camera #" << std::endl << std::endl;
+		std::cout << "Zoom with the scrollwheel while on the 3D scene" << std::endl;
+		std::cout << "Rotate the 3D scene with left click+drag" << std::endl << std::endl;
 	}
 
 	/**
@@ -110,8 +106,8 @@ namespace nl_uu_science_gmt
 			assert(has_cam);
 		}
 
-		destroyAllWindows();
-		namedWindow(VIDEO_WINDOW, CV_WINDOW_KEEPRATIO);
+		cv::destroyAllWindows();
+		cv::namedWindow(VIDEO_WINDOW, CV_WINDOW_KEEPRATIO);
 
 		Reconstructor reconstructor(m_cam_views);
 		Scene3DRenderer scene3d(reconstructor, m_cam_views);
