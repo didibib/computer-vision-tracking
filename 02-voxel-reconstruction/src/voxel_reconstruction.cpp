@@ -5,7 +5,7 @@
  *      Author: coert
  */
 
-#include "VoxelReconstruction.h"
+#include "voxel_reconstruction.h"
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/highgui/highgui_c.h>
@@ -14,10 +14,10 @@
 #include <iostream>
 #include <sstream>
 
-#include "controllers/Glut.h"
-#include "controllers/Reconstructor.h"
-#include "controllers/Scene3DRenderer.h"
-#include "utilities/General.h"
+#include "glut.h"
+#include "reconstructor.h"
+#include "scene_renderer.h"
+#include "util.h"
 
 using namespace nl_uu_science_gmt;
 using namespace std;

@@ -25,6 +25,11 @@ set(SCENE_RENDERER
 	"src/scene_renderer.cpp"
 )
 
+set(VOXEL_RECONSTRUCTION
+	"include/voxel_reconstruction.h"
+	"src/voxel_reconstruction.cpp"
+)
+
 set(ROOT_FILES
 	"include/util.h"
 	"src/util.cpp"
