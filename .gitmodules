@@ -1,0 +1,6 @@
+[submodule "vendor/freeglut"]
+	path = vendor/freeglut
+	url = https://github.com/dcnieho/FreeGLUT.git
+[submodule "vendor/glfw"]
+	path = vendor/glfw
+	url = https://github.com/glfw/glfw.git

@@ -4,15 +4,8 @@
  *  Created on: Nov 15, 2013
  *      Author: coert
  */
-
+#include "cvpch.h"
 #include "reconstructor.h"
-
-#include <opencv2/core/mat.hpp>
-#include <opencv2/core/operations.hpp>
-#include <opencv2/core/types_c.h>
-#include <cassert>
-#include <iostream>
-
 #include "util.h"
 
 using namespace std;

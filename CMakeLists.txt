@@ -5,7 +5,7 @@ if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
     message(FATAL_ERROR "In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there.")
 endif()
 
-# Define paths
+# Define asset paths
 set(VENDOR_DIR "${CMAKE_SOURCE_DIR}/vendor")
 set(IMAGES_DIR "${CMAKE_SOURCE_DIR}/images")
 set(SETTINGS_DIR "${CMAKE_SOURCE_DIR}/settings")
@@ -13,13 +13,13 @@ set(SETTINGS_DIR "${CMAKE_SOURCE_DIR}/settings")
 # Include cmake modules
 include(cmake/update_submodules.cmake)
 include(cmake/set_startup_project.cmake)
-include(cmake/ignore_precompiled_header.cmake)
+include(cmake/ignore_precompiled_header_msvc.cmake)
 include(cmake/set_target_output_directories.cmake)
 include(cmake/set_target_precompiled_header_msvc.cmake)
 
 # Find OpenCV on system
 find_package(OpenCV REQUIRED)                              
-include_directories(${OpenCV_INCLUDE_DIRS})
+#include_directories(${OpenCV_INCLUDE_DIRS})
 
 # Set the project name and version
 project(computer-vision VERSION 1.0)
@@ -35,8 +35,15 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/$<CONFIG>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/$<CONFIG>)
 
 # Start building
-message(STATUS "Adding subdirectory '01-camera-geometric-calibration'")
+message(STATUS "Building GLFW")
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+add_subdirectory(vendor/glfw)
+message(STATUS "Building subdirectory '01-camera-geometric-calibration'")
 add_subdirectory(01-camera-geometric-calibration)
+message(STATUS "Building subdirectory '02-voxel-reconstruction'")
+add_subdirectory(02-voxel-reconstruction)
 
 # (function found in: cmake/)
-set_startup_project(camera-geometric-calibration)
+set_startup_project(02-voxel-reconstruction)

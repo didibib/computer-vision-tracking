@@ -4,24 +4,8 @@
  *  Created on: Nov 13, 2013
  *      Author: coert
  */
-
+#include "cvpch.h"
 #include "camera.h"
-
-#include <opencv2/calib3d/calib3d.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/core/core_c.h>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/core/operations.hpp>
-#include <opencv2/core/types_c.h>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/highgui/highgui_c.h>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/imgproc/types_c.h>
-#include <stddef.h>
-#include <cassert>
-#include <iostream>
-#include <sstream>
-
 #include "util.h"
 
 using namespace std;
@@ -59,18 +43,18 @@ bool Camera::initialize()
 	m_initialized = true;
 
 	Mat bg_image;
-	if (General::fexists(m_data_path + General::BackgroundImageFile))
+	if (Util::fexists(m_data_path + Util::BackgroundImageFile))
 	{
-		bg_image = imread(m_data_path + General::BackgroundImageFile);
+		bg_image = imread(m_data_path + Util::BackgroundImageFile);
 		if (bg_image.empty())
 		{
-			cout << "Unable to read: " << m_data_path + General::BackgroundImageFile;
+			cout << "Unable to read: " << m_data_path + Util::BackgroundImageFile;
 			return false;
 		}
 	}
 	else
 	{
-		cout << "Unable to find background image: " << m_data_path + General::BackgroundImageFile;
+		cout << "Unable to find background image: " << m_data_path + Util::BackgroundImageFile;
 		return false;
 	}
 	assert(!bg_image.empty());
@@ -81,7 +65,7 @@ bool Camera::initialize()
 	split(bg_hsv_im, m_bg_hsv_channels);
 
 	// Open the video for this camera
-	m_video = VideoCapture(m_data_path + General::VideoFile);
+	m_video = VideoCapture(m_data_path + Util::VideoFile);
 	assert(m_video.isOpened());
 
 	// Assess the image size
@@ -96,7 +80,7 @@ bool Camera::initialize()
 	m_video.set(CAP_PROP_POS_AVI_RATIO, 0);  // Go back to the start
 
 	m_video.release(); //Re-open the file because _video.set(CAP_PROP_POS_AVI_RATIO, 1) may screw it up
-	m_video = cv::VideoCapture(m_data_path + General::VideoFile);
+	m_video = cv::VideoCapture(m_data_path + Util::VideoFile);
 
 	// Read the camera properties (XML)
 	FileStorage fs;
@@ -207,7 +191,7 @@ bool Camera::detExtrinsics(
 
 	// Read the checkerboard properties (XML)
 	FileStorage fs;
-	fs.open(data_path + ".." + string(PATH_SEP) + General::CBConfigFile, FileStorage::READ);
+	fs.open(data_path + ".." + string(PATH_SEP) + Util::CBConfigFile, FileStorage::READ);
 	if (fs.isOpened())
 	{
 		fs["CheckerBoardWidth"] >> cb_width;
@@ -241,7 +225,7 @@ bool Camera::detExtrinsics(
 	if (!cap.isOpened())
 	{
 		cerr << "Unable to open: " << data_path + checker_vid_fname << endl;
-		if (General::fexists(data_path + out_fname))
+		if (Util::fexists(data_path + out_fname))
 		{
 			return true;
 		}
@@ -259,8 +243,8 @@ bool Camera::detExtrinsics(
 
 	m_BoardCorners = new vector<Point>(); //A pointer because we need access to it from static function onMouse
 
-	string corners_file = data_path + General::CheckerboadCorners;
-	if (General::fexists(corners_file))
+	string corners_file = data_path + Util::CheckerboadCorners;
+	if (Util::fexists(corners_file))
 	{
 		FileStorage fs;
 		fs.open(corners_file, FileStorage::READ);

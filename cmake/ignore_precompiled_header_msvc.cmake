@@ -1,5 +1,5 @@
 # Ignore PCH for a specified list of files
-function(ignore_precompiled_header sources)
+function(ignore_precompiled_header_msvc sources)
     if(MSVC)  
         message(STATUS "Ignore precompiled header on: ${sources}")
         set_source_files_properties(${${sources}} 
@@ -7,4 +7,4 @@ function(ignore_precompiled_header sources)
                 COMPILE_OPTIONS "/Y-"
         )
     endif(MSVC)
-endfunction(ignore_precompiled_header)
+endfunction(ignore_precompiled_header_msvc)

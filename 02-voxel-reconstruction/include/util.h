@@ -1,12 +1,12 @@
 /*
- * General.h
+ * Util.h
  *
  *  Created on: Nov 13, 2013
  *      Author: coert
  */
-
-#ifndef UTIL_H_
-#define UTIL_H_
+#pragma once
+#ifndef UTIL_H
+#define UTIL_H
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/operations.hpp>
@@ -49,4 +49,4 @@ public:
 
 } /* namespace nl_uu_science_gmt */
 
-#endif /* GENERAL_H_ */
+#endif /* Util_H_ */

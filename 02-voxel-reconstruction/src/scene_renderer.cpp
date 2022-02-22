@@ -5,19 +5,9 @@
  *      Author: coert
  */
 
+#include "cvpch.h"
 #include "scene_renderer.h"
-
-#include <opencv2/core/mat.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/imgproc/types_c.h>
-#include <stddef.h>
-#include <string>
-
 #include "util.h"
-
-using namespace std;
-using namespace cv;
 
 namespace nl_uu_science_gmt
 {
@@ -26,8 +16,7 @@ namespace nl_uu_science_gmt
  * Constructor
  * Scene properties class (mostly called by Glut)
  */
-Scene3DRenderer::Scene3DRenderer(
-		Reconstructor &r, const vector<Camera*> &cs) :
+Scene3DRenderer::Scene3DRenderer(Reconstructor &r, const std::vector<Camera*> &cs) :
 				m_reconstructor(r),
 				m_cameras(cs),
 				m_num(4),
@@ -48,8 +37,8 @@ Scene3DRenderer::Scene3DRenderer(
 	m_fullscreen = false;
 
 	// Read the checkerboard properties (XML)
-	FileStorage fs;
-	fs.open(m_cameras.front()->getDataPath() + ".." + string(PATH_SEP) + General::CBConfigFile, FileStorage::READ);
+	cv::FileStorage fs;
+	fs.open(m_cameras.front()->getDataPath() + ".." + std::string(PATH_SEP) + Util::CBConfigFile, cv::FileStorage::READ);
 	if (fs.isOpened())
 	{
 		fs["CheckerBoardWidth"] >> m_board_size.width;
@@ -75,10 +64,10 @@ Scene3DRenderer::Scene3DRenderer(
 	m_v_threshold = V;
 	m_pv_threshold = V;
 
-	createTrackbar("Frame", VIDEO_WINDOW, &m_current_frame, m_number_of_frames - 2);
-	createTrackbar("H", VIDEO_WINDOW, &m_h_threshold, 255);
-	createTrackbar("S", VIDEO_WINDOW, &m_s_threshold, 255);
-	createTrackbar("V", VIDEO_WINDOW, &m_v_threshold, 255);
+	cv::createTrackbar("Frame", VIDEO_WINDOW, &m_current_frame, m_number_of_frames - 2);
+	cv::createTrackbar("H", VIDEO_WINDOW, &m_h_threshold, 255);
+	cv::createTrackbar("S", VIDEO_WINDOW, &m_s_threshold, 255);
+	cv::createTrackbar("V", VIDEO_WINDOW, &m_v_threshold, 255);
 
 	createFloorGrid();
 	setTopView();
@@ -124,14 +113,14 @@ void Scene3DRenderer::processForeground(
 		Camera* camera)
 {
 	assert(!camera->getFrame().empty());
-	Mat hsv_image;
+	cv::Mat hsv_image;
 	cvtColor(camera->getFrame(), hsv_image, CV_BGR2HSV);  // from BGR to HSV color space
 
-	vector<Mat> channels;
+	std::vector<cv::Mat> channels;
 	split(hsv_image, channels);  // Split the HSV-channels for further analysis
 
 	// Background subtraction H
-	Mat tmp, foreground, background;
+	cv::Mat tmp, foreground, background;
 	absdiff(channels[0], camera->getBgHsvChannels().at(0), tmp);
 	threshold(tmp, foreground, m_h_threshold, 255, CV_THRESH_BINARY);
 
@@ -195,24 +184,24 @@ void Scene3DRenderer::createFloorGrid()
 	const int z_offset = 3;
 
 	// edge 1
-	vector<Point3i*> edge1;
+	std::vector<cv::Point3i*> edge1;
 	for (int y = -size * m_num; y <= size * m_num; y += size)
-		edge1.push_back(new Point3i(-size * m_num, y, z_offset));
+		edge1.push_back(new cv::Point3i(-size * m_num, y, z_offset));
 
 	// edge 2
-	vector<Point3i*> edge2;
+	std::vector<cv::Point3i*> edge2;
 	for (int x = -size * m_num; x <= size * m_num; x += size)
-		edge2.push_back(new Point3i(x, size * m_num, z_offset));
+		edge2.push_back(new cv::Point3i(x, size * m_num, z_offset));
 
 	// edge 3
-	vector<Point3i*> edge3;
+	std::vector<cv::Point3i*> edge3;
 	for (int y = -size * m_num; y <= size * m_num; y += size)
-		edge3.push_back(new Point3i(size * m_num, y, z_offset));
+		edge3.push_back(new cv::Point3i(size * m_num, y, z_offset));
 
 	// edge 4
-	vector<Point3i*> edge4;
+	std::vector<cv::Point3i*> edge4;
 	for (int x = -size * m_num; x <= size * m_num; x += size)
-		edge4.push_back(new Point3i(x, -size * m_num, z_offset));
+		edge4.push_back(new cv::Point3i(x, -size * m_num, z_offset));
 
 	m_floor_grid.push_back(edge1);
 	m_floor_grid.push_back(edge2);

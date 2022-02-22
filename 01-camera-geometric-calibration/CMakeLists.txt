@@ -1,3 +1,11 @@
+set(TARGET 01-camera-geometric-calibration)
+
+set(ROOT_FILES
+    "include/util.h"
+    "src/draw.cpp"
+    "main.cpp"
+)
+
 set(PCH
     "include/cvpch.h"
     "src/cvpch.cpp"
@@ -22,12 +30,6 @@ set(LINE_SEGMENT
     "include/line_segment.h"
 )
 
-set(ROOT_FILES
-    "include/util.h"
-    "src/draw.cpp"
-    "main.cpp"
-)
-
 set(SOURCE_LIST
     ${PCH}
     ${CAMERA}
@@ -38,8 +40,6 @@ set(SOURCE_LIST
     ${LINE_SEGMENT}
     ${ROOT_FILES}
 )
-
-set(TARGET camera-geometric-calibration)
 
 add_executable(${TARGET} ${SOURCE_LIST})
 
@@ -63,9 +63,10 @@ target_compile_definitions(${TARGET} PUBLIC IMAGES_DIR=${IMAGES_DIR})
 target_compile_definitions(${TARGET} PUBLIC SETTINGS_DIR=${SETTINGS_DIR})
 
 target_include_directories(${TARGET} PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "include"
+    ${OpenCV_INCLUDE_DIRS}
 )
 
-target_link_libraries(${TARGET}
+target_link_libraries(${TARGET} PUBLIC
     ${OpenCV_LIBS}
 )
