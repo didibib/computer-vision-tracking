@@ -7,8 +7,7 @@ set(ROOT_FILES
 set(UTIL 	
 	"${UTIL_DIR}/logger.h"
 	"${UTIL_DIR}/logger.cpp"
-	"include/util.h"
-	"src/util.cpp"
+	"${UTIL_DIR}/util.h"
 )
 
 set(PCH 

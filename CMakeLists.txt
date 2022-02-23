@@ -6,9 +6,7 @@ if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
 endif()
 
 # Define asset paths
-set(SETTINGS_DIR "${CMAKE_SOURCE_DIR}/settings/")
-set(IMAGES_DIR "${CMAKE_SOURCE_DIR}/images/")
-set(UTIL_DIR "${CMAKE_SOURCE_DIR}/util/")
+set(UTIL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/util/")
 
 # Include cmake modules
 include(cmake/update_submodules.cmake)

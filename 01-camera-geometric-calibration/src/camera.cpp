@@ -7,7 +7,7 @@ Camera::Camera(const cv::FileNode& node, Checkerboard checkerboard)
 	std::string dataLoc;
 	node["Calibration_Output_File_Name"] >> dataLoc;
 
-	cv::FileStorage calibData(util::SETTINGS_DIR_STR + "/" + dataLoc, cv::FileStorage::READ); // Read the settings
+	cv::FileStorage calibData(util::SETTINGS_DIR_STR + dataLoc, cv::FileStorage::READ); // Read the settings
 	if (calibData.isOpened())
 	{
 		printf("Using existing calibration\n");
@@ -18,7 +18,7 @@ Camera::Camera(const cv::FileNode& node, Checkerboard checkerboard)
 	{
 		std::string folder;
 		node["Calibration_Images_Folder"] >> folder;
-		Calibrate(checkerboard, util::IMAGES_DIR_STR + "/" + folder);
+		Calibrate(checkerboard, util::IMAGES_DIR_STR + folder);
 		// Write to output
 		Save(dataLoc);
 	}
@@ -26,7 +26,7 @@ Camera::Camera(const cv::FileNode& node, Checkerboard checkerboard)
 
 void Camera::Save(std::string fileName)
 {
-	cv::FileStorage fs(util::SETTINGS_DIR_STR + "/" + fileName, cv::FileStorage::WRITE);
+	cv::FileStorage fs(util::SETTINGS_DIR_STR + fileName, cv::FileStorage::WRITE);
 	fs << "Intrinsic_Matrix" << mIntrinsic;
 	fs << "Distance_Coefficients" << mDistCoeffs;
 }

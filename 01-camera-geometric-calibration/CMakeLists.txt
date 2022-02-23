@@ -59,6 +59,8 @@ set_target_precompiled_header_msvc(${TARGET} "cvpch.h" "src/cvpch.cpp")
 
 # Add macro specifying assets directory
 # ${ASSETS_DRI} is set in the root
+set(IMAGES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/images/")
+set(SETTINGS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/settings/")
 target_compile_definitions(${TARGET} PUBLIC IMAGES_DIR=${IMAGES_DIR})
 target_compile_definitions(${TARGET} PUBLIC SETTINGS_DIR=${SETTINGS_DIR})
 
