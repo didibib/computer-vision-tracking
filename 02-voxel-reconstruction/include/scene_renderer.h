@@ -19,7 +19,7 @@
 #include "camera.h"
 #include "reconstructor.h"
 
-namespace nl_uu_science_gmt
+namespace team45
 {
 
 	class Scene3DRenderer
@@ -215,6 +215,6 @@ namespace nl_uu_science_gmt
 		int getSquareSideLen() const { return m_square_side_len; }
 	};
 
-} /* namespace nl_uu_science_gmt */
+} /* namespace team45 */
 
 #endif /* SCENE3DRENDERER_H_ */

@@ -2,13 +2,13 @@
 #include "util.h"
 #include "voxel_reconstruction.h"
 
-using namespace nl_uu_science_gmt;
+using namespace team45;
 
 int main(int argc, char** argv)
 {
 	VoxelReconstruction::showKeys();
-	VoxelReconstruction vr("data" + std::string(PATH_SEP), 4);
-	vr.run(argc, argv);
+	VoxelReconstruction vr(4);
+	vr.init(argc, argv);
 
 	return EXIT_SUCCESS;
 }

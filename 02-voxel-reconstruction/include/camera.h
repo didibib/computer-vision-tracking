@@ -1,12 +1,6 @@
-/*
- * Camera.h
- *
- *  Created on: Nov 13, 2013
- *      Author: coert
- */
-
-#ifndef CAMERA_H_
-#define CAMERA_H_
+#pragma once
+#ifndef CAMERA_H
+#define CAMERA_H
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/mat.hpp>
@@ -14,20 +8,19 @@
 #include <string>
 #include <vector>
 
-namespace nl_uu_science_gmt
+namespace team45
 {
 
 #define MAIN_WINDOW "Checkerboard Marking"
 
 class Camera
 {
-	static std::vector<cv::Point>* m_BoardCorners;  // marked checkerboard corners
+	static std::vector<cv::Point>* m_BoardCorners;   // marked checkerboard corners
 
-	bool m_initialized;                             // Is this camera successfully initialized
+	bool initialized;                              // Is this camera successfully initialized
 
-	const std::string m_data_path;                  // Path to data directory
-	const std::string m_cam_props_file;             // Camera properties filename
-	const int m_id;                                 // Camera ID
+	const std::string m_cam_data_path;                  // Path to data directory
+	const int m_id;                                  // Camera ID
 
 	std::vector<cv::Mat> m_bg_hsv_channels;          // Background HSV channel images
 	cv::Mat m_foreground_image;                      // This camera's foreground image (binary)
@@ -42,7 +35,7 @@ class Camera
 	cv::Mat m_rotation_values;                       // Rotation vector (3x1)
 	cv::Mat m_translation_values;                    // Translation vector (3x1)
 
-	float m_fx, m_fy, m_cx, m_cy;                   // Focal lenghth (fx, fy), camera center (cx, cy)
+	float m_fx, m_fy, m_cx, m_cy;                    // Focal lenghth (fx, fy), camera center (cx, cy)
 
 	cv::Mat m_rt;                                    // R matrix
 	cv::Mat m_inverse_rt;                            // R's inverse matrix
@@ -53,6 +46,14 @@ class Camera
 
 	cv::Mat m_frame;                                 // Current video frame (image)
 
+	int m_cb_width = 0, m_cb_height = 0;
+	int m_cb_square_size = 0;
+
+	cv::Mat m_intrinsic, m_dist_coeffs, m_R, m_T;
+
+	bool detIntrinsics();
+	bool findCbCorners(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints);
+	cv::Mat createBgImg();
 	static void onMouse(int, int, int, int, void*);
 	void initCamLoc();
 	inline void camPtInWorld();
@@ -61,7 +62,7 @@ class Camera
 	cv::Point3f cam3DtoW3D(const cv::Point3f &);
 
 public:
-	Camera(const std::string &, const std::string &, int);
+	Camera(const std::string &, int);
 	virtual ~Camera();
 
 	bool initialize();
@@ -70,20 +71,10 @@ public:
 	cv::Mat& getVideoFrame(int);
 	void setVideoFrame(int);
 
-	static bool detExtrinsics(const std::string &, const std::string &, const std::string &, const std::string &);
+	bool detExtrinsics();
 
 	static cv::Point projectOnView(const cv::Point3f &, const cv::Mat &, const cv::Mat &, const cv::Mat &, const cv::Mat &);
 	cv::Point projectOnView(const cv::Point3f &);
-
-	const std::string& getCamPropertiesFile() const
-	{
-		return m_cam_props_file;
-	}
-
-	const std::string& getDataPath() const
-	{
-		return m_data_path;
-	}
 
 	const int getId() const
 	{
@@ -112,7 +103,7 @@ public:
 
 	bool isInitialized() const
 	{
-		return m_initialized;
+		return initialized;
 	}
 
 	const cv::Size& getSize() const
@@ -151,6 +142,6 @@ public:
 	}
 };
 
-} /* namespace nl_uu_science_gmt */
+} /* namespace team45 */
 
 #endif /* CAMERA_H_ */

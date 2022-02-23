@@ -6,7 +6,7 @@
 #include "reconstructor.h"
 #include "scene_renderer.h"
 
-namespace nl_uu_science_gmt
+namespace team45
 {
 
 	Window* Window::m_Window;
@@ -139,15 +139,20 @@ namespace nl_uu_science_gmt
 		{
 			scene3d.setCurrentFrame(scene3d.getCurrentFrame() - 1);
 
-		}case GLFW_KEY_N:
+		}
+		break;
+		case GLFW_KEY_N:
 		{
 			scene3d.setCurrentFrame(scene3d.getCurrentFrame() + 1);
 		}
+		break;
 		case GLFW_KEY_R:
 		{
 			bool rotate = scene3d.isRotate();
 			scene3d.setRotate(!rotate);
+		break;
 		}
+		break;
 		case GLFW_KEY_S:
 		{
 #ifdef _WIN32
@@ -156,21 +161,25 @@ namespace nl_uu_science_gmt
 			bool arcball = scene3d.isShowArcball();
 			scene3d.setShowArcball(!arcball);
 		}
+		break;
 		case GLFW_KEY_V:
 		{
 			bool volume = scene3d.isShowVolume();
 			scene3d.setShowVolume(!volume);
 		}
+		break;
 		case GLFW_KEY_G:
 		{
 			bool floor = scene3d.isShowGrdFlr();
 			scene3d.setShowGrdFlr(!floor);
 		}
+		break;
 		case GLFW_KEY_C:
 		{
 			bool cam = scene3d.isShowCam();
 			scene3d.setShowCam(!cam);
 		}
+		break;
 		case GLFW_KEY_I:
 		{
 #ifdef _WIN32
@@ -179,11 +188,13 @@ namespace nl_uu_science_gmt
 			bool info = scene3d.isShowInfo();
 			scene3d.setShowInfo(!info);
 		}
+		break;
 		case GLFW_KEY_O:
 		{
 			bool origin = scene3d.isShowOrg();
 			scene3d.setShowOrg(!origin);
 		}
+		break;
 		case GLFW_KEY_T:
 		{
 			scene3d.setTopView();
@@ -373,15 +384,15 @@ namespace nl_uu_science_gmt
 			cv::Mat fg_im_3c;
 			cvtColor(foreground, fg_im_3c, CV_GRAY2BGR);
 			hconcat(canvas, fg_im_3c, canvas);
-			imshow(VIDEO_WINDOW, canvas);
+			imshow(util::VIDEO_WINDOW, canvas);
 		}
 		else if (!canvas.empty())
 		{
-			imshow(VIDEO_WINDOW, canvas);
+			imshow(util::VIDEO_WINDOW, canvas);
 		}
 
 		// Update the frame slider position
-		cv::setTrackbarPos("Frame", VIDEO_WINDOW, scene3d.getCurrentFrame());
+		cv::setTrackbarPos("Frame", util::VIDEO_WINDOW, scene3d.getCurrentFrame());
 	}
 
 	/**
@@ -597,4 +608,4 @@ namespace nl_uu_science_gmt
 		glPopMatrix();
 	}
 
-} /* namespace nl_uu_science_gmt */
+} /* namespace team45 */

@@ -11,7 +11,7 @@
 using namespace std;
 using namespace cv;
 
-namespace nl_uu_science_gmt
+namespace team45
 {
 
 /**
@@ -180,4 +180,4 @@ void Reconstructor::update()
 	m_visible_voxels.insert(m_visible_voxels.end(), visible_voxels.begin(), visible_voxels.end());
 }
 
-} /* namespace nl_uu_science_gmt */
+} /* namespace team45 */

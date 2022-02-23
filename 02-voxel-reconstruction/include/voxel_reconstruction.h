@@ -1,37 +1,32 @@
-/*
- * VoxelReconstruction.h
- *
- *  Created on: Nov 13, 2013
- *      Author: coert
- */
-
-#ifndef VOXELRECONSTRUCTION_H_
-#define VOXELRECONSTRUCTION_H_
+#pragma once
+#ifndef VOXELRECONSTRUCTION_H
+#define VOXELRECONSTRUCTION_H
 
 #include <string>
 #include <vector>
 
 #include "camera.h"
 
-namespace nl_uu_science_gmt
+namespace team45
 {
 
 class VoxelReconstruction
 {
-	const std::string m_data_path;
 	const int m_cam_views_amount;
 
 	std::vector<Camera*> m_cam_views;
 
+	
+
 public:
-	VoxelReconstruction(const std::string &, const int);
+	VoxelReconstruction(const int);
 	virtual ~VoxelReconstruction();
 
 	static void showKeys();
 
-	void run(int, char**);
+	void init(int, char**);
 };
 
-} /* namespace nl_uu_science_gmt */
+} /* namespace team45 */
 
-#endif /* VOXELRECONSTRUCTION_H_ */
+#endif /* VOXELRECONSTRUCTION_H */

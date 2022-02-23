@@ -1,10 +1,3 @@
-/*
- * VoxelReconstruction.cpp
- *
- *  Created on: Nov 13, 2013
- *      Author: coert
- */
-
 #include "cvpch.h"
 #include "voxel_reconstruction.h"
 
@@ -13,46 +6,39 @@
 #include "scene_renderer.h"
 #include "util.h"
 
-namespace nl_uu_science_gmt
+namespace team45
 {
-
 	/**
 	 * Main constructor, initialized all cameras
 	 */
-	VoxelReconstruction::VoxelReconstruction(const std::string& dp, const int cva) :
-		m_data_path(dp), m_cam_views_amount(cva)
+	VoxelReconstruction::VoxelReconstruction(const int cva) :
+		m_cam_views_amount(cva)
 	{
-		const std::string cam_path = m_data_path + "cam";
+		const std::string cam_path = util::DATA_DIR_STR + "cam";
 
 		for (int v = 0; v < m_cam_views_amount; ++v)
 		{
-			std::stringstream full_path;
-			full_path << cam_path << (v + 1) << PATH_SEP;
+			std::stringstream full_cam_path;
+			full_cam_path << cam_path << (v + 1) << PATH_SEP;
 
 			/*
-			 * Assert that there's a background image or video file and \
-			 * that there's a video file
+			 * Assert that there is a video file
 			 */
-			std::cout << full_path.str() << Util::VideoFile << std::endl;
-			std::cout << full_path.str() << Util::BackgroundImageFile << std::endl;
-			assert(
-				Util::fexists(full_path.str() + Util::BackgroundImageFile)
-				&&
-				Util::fexists(full_path.str() + Util::VideoFile)
-			);
+			std::cout << full_cam_path.str() << util::VIDEO_FILE << std::endl;
+			assert(util::fexists(full_cam_path.str() + util::VIDEO_FILE));
 
 			/*
 			 * Assert that if there's no config.xml file, there's an intrinsics file and
 			 * a checkerboard video to create the extrinsics from
 			 */
 			assert(
-				(!Util::fexists(full_path.str() + Util::ConfigFile) ?
-					Util::fexists(full_path.str() + Util::IntrinsicsFile) &&
-					Util::fexists(full_path.str() + Util::CheckerboadVideo)
+				(!util::fexists(full_cam_path.str() + util::CAM_CONFIG_FILE) ?
+					util::fexists(full_cam_path.str() + util::INTRINSICS_FILE) &&
+					util::fexists(full_cam_path.str() + util::CHECKERBOARD_VIDEO)
 					: true)
 			);
 
-			m_cam_views.push_back(new Camera(full_path.str(), Util::ConfigFile, v));
+			m_cam_views.push_back(new Camera(full_cam_path.str(), v));
 		}
 	}
 
@@ -70,7 +56,7 @@ namespace nl_uu_science_gmt
 	 */
 	void VoxelReconstruction::showKeys()
 	{
-		std::cout << "VoxelReconstruction v" << VERSION << std::endl << std::endl;
+		std::cout << "VoxelReconstruction v" << util::VERSION << std::endl << std::endl;
 		std::cout << "Use these keys:" << std::endl;
 		std::cout << "q       : Quit" << std::endl;
 		std::cout << "p       : Pause" << std::endl;
@@ -95,26 +81,25 @@ namespace nl_uu_science_gmt
 	 * - After that initialize the scene rendering classes
 	 * - Run it!
 	 */
-	void VoxelReconstruction::run(int argc, char** argv)
+	void VoxelReconstruction::init(int argc, char** argv)
 	{
 		for (int v = 0; v < m_cam_views_amount; ++v)
 		{
-			bool has_cam = Camera::detExtrinsics(m_cam_views[v]->getDataPath(), Util::CheckerboadVideo,
-				Util::IntrinsicsFile, m_cam_views[v]->getCamPropertiesFile());
+			bool has_cam = m_cam_views[v]->detExtrinsics();
 			assert(has_cam);
 			if (has_cam) has_cam = m_cam_views[v]->initialize();
 			assert(has_cam);
 		}
 
 		cv::destroyAllWindows();
-		cv::namedWindow(VIDEO_WINDOW, CV_WINDOW_KEEPRATIO);
+		cv::namedWindow(util::VIDEO_WINDOW, CV_WINDOW_KEEPRATIO);
 
 		Reconstructor reconstructor(m_cam_views);
 		Scene3DRenderer scene3d(reconstructor, m_cam_views);
 		Window window(scene3d);
 
-		window.init(SCENE_WINDOW.c_str());
+		window.init(util::SCENE_WINDOW.c_str());
 		window.run();
 	}
 
-} /* namespace nl_uu_science_gmt */
+} /* namespace team45 */

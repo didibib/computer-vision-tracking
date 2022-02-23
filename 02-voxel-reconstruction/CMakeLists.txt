@@ -78,7 +78,8 @@ set(IGNORE_PCH
 ignore_precompiled_header_msvc(IGNORE_PCH)
 
 # Add macro specifying asset directory
-target_compile_definitions(${TARGET} PUBLIC VIDEOS_DIR=${VIDEOS_DIR})
+set(DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data/")
+target_compile_definitions(${TARGET} PUBLIC DATA_DIR_M=${DATA_DIR})
 
 target_include_directories(${TARGET} PUBLIC
     "include"

@@ -14,7 +14,7 @@
 
 #include "Camera.h"
 
-namespace nl_uu_science_gmt
+namespace team45
 {
 
 class Reconstructor
@@ -92,6 +92,6 @@ public:
 	}
 };
 
-} /* namespace nl_uu_science_gmt */
+} /* namespace team45 */
 
 #endif /* RECONSTRUCTOR_H_ */

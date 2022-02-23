@@ -1,6 +1,6 @@
 #pragma once
 
-namespace nl_uu_science_gmt
+namespace team45
 {
 	class Scene3DRenderer;
 
@@ -10,7 +10,7 @@ namespace nl_uu_science_gmt
 
 		static Window* m_Window;
 		GLFWwindow* m_glfwWindow = nullptr;
-
+		
 		static void drawGrdGrid();
 		static void drawCamCoord();
 		static void drawVolume();
@@ -47,5 +47,5 @@ namespace nl_uu_science_gmt
 		}
 	};
 
-} /* namespace nl_uu_science_gmt */
+} /* namespace team45 */
 
