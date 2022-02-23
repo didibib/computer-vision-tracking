@@ -83,7 +83,7 @@ void Reconstructor::initialize()
 	m_corners.push_back(new Point3f((float) xR, (float) yL, (float) zR));
 
 	// Acquire some memory for efficiency
-	cout << "Initializing " << m_voxels_amount << " voxels ";
+	INFO("Initializing voxels {}", m_voxels_amount);
 	m_voxels.resize(m_voxels_amount);
 
 	int z;
@@ -138,7 +138,7 @@ void Reconstructor::initialize()
 		}
 	}
 
-	cout << "done!" << endl;
+	INFO("DONE");
 }
 
 /**

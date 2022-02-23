@@ -7,9 +7,8 @@ endif()
 
 # Define asset paths
 set(SETTINGS_DIR "${CMAKE_SOURCE_DIR}/settings/")
-set(VENDOR_DIR "${CMAKE_SOURCE_DIR}/vendor/")
 set(IMAGES_DIR "${CMAKE_SOURCE_DIR}/images/")
-set(VIDEOS_DIR "${CMAKE_SOURCE_DIR}/videos/")
+set(UTIL_DIR "${CMAKE_SOURCE_DIR}/util/")
 
 # Include cmake modules
 include(cmake/update_submodules.cmake)
@@ -36,14 +35,16 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/$<CONFIG>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/$<CONFIG>)
 
 # Start building
-message(STATUS "Building GLFW")
+message(STATUS "Adding subdirectory GLFW")
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(vendor/glfw)
-message(STATUS "Building subdirectory '01-camera-geometric-calibration'")
+message(STATUS "Adding subdirectory 'spdlog'")
+add_subdirectory(vendor/spdlog)
+message(STATUS "Adding subdirectory '01-camera-geometric-calibration'")
 add_subdirectory(01-camera-geometric-calibration)
-message(STATUS "Building subdirectory '02-voxel-reconstruction'")
+message(STATUS "Adding subdirectory '02-voxel-reconstruction'")
 add_subdirectory(02-voxel-reconstruction)
 
 # (function found in: cmake/)

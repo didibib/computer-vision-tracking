@@ -1,9 +1,14 @@
 set(TARGET 02-voxel-reconstruction)
 
 set(ROOT_FILES
+	"main.cpp"
+)
+
+set(UTIL 	
+	"${UTIL_DIR}/logger.h"
+	"${UTIL_DIR}/logger.cpp"
 	"include/util.h"
 	"src/util.cpp"
-	"main.cpp"
 )
 
 set(PCH 
@@ -48,6 +53,7 @@ set(GLAD
 
 add_executable (${TARGET}
 	${ROOT_FILES}
+	${UTIL}
 	${CAMERA}
 	${WINDOW}
 	${RECONSTRUCTOR}
@@ -59,6 +65,7 @@ add_executable (${TARGET}
 
 source_group(\\ FILES ${ROOT_FILES})
 source_group(pch FILES ${PCH})
+source_group(util FILES ${UTIL})
 source_group(glad FILES ${GLAD})
 source_group(camera FILES ${CAMERA})
 source_group(window FILES ${WINDOW})
@@ -83,10 +90,12 @@ target_compile_definitions(${TARGET} PUBLIC DATA_DIR_M=${DATA_DIR})
 
 target_include_directories(${TARGET} PUBLIC
     "include"
+	${UTIL_DIR}
 	${OpenCV_INCLUDE_DIRS}
 )
 
 target_link_libraries(${TARGET} PUBLIC
 	${OpenCV_LIBS}
 	glfw
+    spdlog::spdlog
 )

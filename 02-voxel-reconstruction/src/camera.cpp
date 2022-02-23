@@ -38,7 +38,7 @@ namespace team45
 		// If the config doesn't exist, calibrate the camera
 		if (!fs.isOpened())
 		{
-			cerr << "Unable to locate: " << m_cam_data_path << util::CAM_CONFIG_FILE << endl;
+			ERROR("Unable to locate: {}{}", m_cam_data_path, util::CAM_CONFIG_FILE);
 			if (!(detIntrinsics() && detExtrinsics())) return false;
 		}
 
@@ -77,14 +77,14 @@ namespace team45
 			bg_image = imread(m_cam_data_path + util::BACKGROUND_IMAGE_FILE);
 			if (bg_image.empty())
 			{
-				std::cout << "Unable to read: " << m_cam_data_path + util::BACKGROUND_IMAGE_FILE;
+				ERROR("Unable to read: {}{}", m_cam_data_path, util::BACKGROUND_IMAGE_FILE);
 				return false;
 			}
 		}
 		else
-		{
-			std::cout << "Unable to find background image: " << m_cam_data_path + util::BACKGROUND_IMAGE_FILE << std::endl;
-			std::cout << "Making our own background image!";
+		{=
+			WARN("Unable to find background image at: {}{}", m_cam_data_path, util::BACKGROUND_IMAGE_FILE);
+			INFO("Making our own background image!");
 			bg_image = createBgImg();
 		}
 		assert(!bg_image.empty());
@@ -159,7 +159,7 @@ namespace team45
 		}
 
 		double finalError = cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), m_intrinsic, m_dist_coeffs, m_R, m_T);
-		printf("Calibrated camera with error %f\n", finalError);
+		INFO("Calibrated camera with error: {}", finalError);
 
 		cv::FileStorage fs;
 		fs.open(m_cam_data_path + util::INTRINSICS_FILE, FileStorage::WRITE);
@@ -275,14 +275,14 @@ namespace team45
 			{
 				if (!m_BoardCorners->empty())
 				{
-					cout << "Removed corner " << m_BoardCorners->size() << "... (use Click to add)" << endl;
+					INFO("Removed corner {}... (use Click to add)", m_BoardCorners->size());
 					m_BoardCorners->pop_back();
 				}
 			}
 			else
 			{
 				m_BoardCorners->push_back(Point(x, y));
-				cout << "Added corner " << m_BoardCorners->size() << "... (use CTRL+Click to remove)" << endl;
+				INFO("Added corner {}... (use CTRL+Click to remove)", m_BoardCorners->size());
 			}
 			break;
 		default:
@@ -315,14 +315,14 @@ namespace team45
 		}
 		else
 		{
-			cerr << "Unable to read camera intrinsics from: " << m_cam_data_path << util::INTRINSICS_FILE << endl;
+			ERROR("Unable to read camera inntrinsics from: ", m_cam_data_path, util::INTRINSICS_FILE);
 			return false;
 		}
 
 		VideoCapture cap(m_cam_data_path + util::CHECKERBOARD_VIDEO);
 		if (!cap.isOpened())
 		{
-			cerr << "Unable to open: " << m_cam_data_path + util::CHECKERBOARD_VIDEO << endl;
+			WARN("Unable to open: ", m_cam_data_path, util::CHECKERBOARD_VIDEO);
 			if (util::fexists(m_cam_data_path + util::CAM_CONFIG_FILE))
 			{
 				return true;
@@ -369,11 +369,11 @@ namespace team45
 		}
 		else
 		{
-			cout << "Estimate camera extrinsics by hand..." << endl;
+			INFO("Estimate camera intrinsics by hand...");
 			namedWindow(MAIN_WINDOW, CV_WINDOW_KEEPRATIO);
 			setMouseCallback(MAIN_WINDOW, onMouse);
 
-			cout << "Now mark the " << board_size.area() << " interior corners of the checkerboard" << endl;
+			INFO("Now click the {} interior corners of the checkerboard", board_size.area());
 			Mat canvas;
 			while ((int)m_BoardCorners->size() < board_size.area())
 			{
@@ -403,7 +403,7 @@ namespace team45
 			}
 
 			assert((int)m_BoardCorners->size() == board_size.area());
-			cout << "Marking finished!" << endl;
+			INFO("Marking finished!");
 			destroyAllWindows();
 
 			FileStorage fs;
@@ -471,7 +471,7 @@ namespace team45
 		}
 		else
 		{
-			cerr << "Unable to write camera intrinsics+extrinsics to: " << m_cam_data_path << util::CAM_CONFIG_FILE << endl;
+			ERROR("Unable to write camera intrinsics+extrinsics to: ", m_cam_data_path, util::CAM_CONFIG_FILE);
 			return false;
 		}
 

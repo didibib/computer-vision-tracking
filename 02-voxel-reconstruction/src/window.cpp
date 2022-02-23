@@ -43,7 +43,7 @@ namespace team45
 
 		if (!m_glfwWindow)
 		{
-			std::cerr << "Failed to create window" << std::endl;
+			CRITICAL("Failed to create window");
 			return false;
 		}
 		glfwSetWindowUserPointer(m_glfwWindow, this);
@@ -52,7 +52,7 @@ namespace team45
 		// Load OpenGL extensions
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 		{
-			std::cerr << "Failed to initialize OpengGL context" << std::endl;
+			CRITICAL("Failed to initialize OpengGL context");
 			return false;
 		}
 
@@ -201,6 +201,7 @@ namespace team45
 			reset();
 			//arcball_reset();
 		}
+		break;
 		default:
 			break;
 		}

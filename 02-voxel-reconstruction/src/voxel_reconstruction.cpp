@@ -24,7 +24,7 @@ namespace team45
 			/*
 			 * Assert that there is a video file
 			 */
-			std::cout << full_cam_path.str() << util::VIDEO_FILE << std::endl;
+			INFO("Video file path: {} {}", full_cam_path.str(), util::VIDEO_FILE);
 			assert(util::fexists(full_cam_path.str() + util::VIDEO_FILE));
 
 			/*

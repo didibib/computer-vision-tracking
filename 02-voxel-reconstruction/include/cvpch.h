@@ -42,3 +42,6 @@
 #include <Windows.h>
 #include <GL/glu.h>
 #endif
+
+// Own headers
+#include "logger.h"
