@@ -19,10 +19,12 @@ class Camera
 
 	bool initialized;                              // Is this camera successfully initialized
 
-	const std::string m_cam_data_path;                  // Path to data directory
+	const std::string m_data_path;                  // Path to data directory
 	const int m_id;                                  // Camera ID
 
 	std::vector<cv::Mat> m_bg_hsv_channels;          // Background HSV channel images
+
+	cv::Ptr<cv::BackgroundSubtractorMOG2> m_bg_model;
 	cv::Mat m_foreground_image;                      // This camera's foreground image (binary)
 
 	cv::VideoCapture m_video;                        // Video reader
@@ -53,7 +55,7 @@ class Camera
 
 	bool detIntrinsics();
 	bool findCbCorners(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints);
-	cv::Mat createBgImg();
+	void initBgModel();
 	static void onMouse(int, int, int, int, void*);
 	void initCamLoc();
 	inline void camPtInWorld();

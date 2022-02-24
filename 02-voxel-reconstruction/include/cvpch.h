@@ -4,12 +4,12 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <limits.h>
 #include <algorithm>
 #include <random>
-#include <fstream>
 #include <cstdlib>
 #include <cassert>
 #include <cmath>

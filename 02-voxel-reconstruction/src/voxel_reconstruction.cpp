@@ -1,3 +1,4 @@
+
 #include "cvpch.h"
 #include "voxel_reconstruction.h"
 
@@ -85,9 +86,7 @@ namespace team45
 	{
 		for (int v = 0; v < m_cam_views_amount; ++v)
 		{
-			bool has_cam = m_cam_views[v]->detExtrinsics();
-			assert(has_cam);
-			if (has_cam) has_cam = m_cam_views[v]->initialize();
+			bool has_cam = m_cam_views[v]->initialize();
 			assert(has_cam);
 		}
 

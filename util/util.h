@@ -33,7 +33,7 @@ namespace util
 	static const std::string CHECKERBOARD_VIDEO = "checkerboard.avi";
 	static const std::string CHECKERBOARD_CORNERS = "boardcorners.xml";
 	static const std::string VIDEO_FILE = "video.avi";
-	static const std::string BACKGROUND_IMAGE_FILE = "background.png";
+	static const std::string BACKGROUND_MODEL_FILE = "background.bgmodel";
 	static const std::string BACKGROUND_VIDEO_FILE = "background.avi";
 	static const std::string CAM_CONFIG_FILE = "config.xml";
 
@@ -71,6 +71,26 @@ namespace util
 		r += (chans + '0');
 
 		return r;
+	}
+
+	template <typename T>
+	static void write_obj(T& obj, std::string filename)
+	{
+		std::ofstream os(filename.c_str(), std::ios::out | std::ios::binary);
+		os.write((char*)&obj, sizeof(obj));
+		os.close();
+	}
+
+	template <typename T>
+	static void read_obj(std::string filename, T& obj)
+	{
+		std::ifstream is(filename.c_str(), std::ios::in | std::ios::binary);
+		if (!is)
+		{
+			ERROR("Cannot open file {}", filename);
+		}
+		is.read((char*)&obj, sizeof(obj));
+		is.close();
 	}
 
 } /* namespace team45 */

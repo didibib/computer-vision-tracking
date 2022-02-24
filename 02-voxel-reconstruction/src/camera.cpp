@@ -10,7 +10,7 @@ namespace team45
 	vector<Point>* Camera::m_BoardCorners;  // marked checkerboard corners
 
 	Camera::Camera(const string& cdp, const int id) :
-		m_cam_data_path(cdp),
+		m_data_path(cdp),
 		m_id(id)
 	{
 		initialized = false;
@@ -24,6 +24,7 @@ namespace team45
 
 	Camera::~Camera()
 	{
+		delete m_bg_model;
 	}
 
 	/**
@@ -31,19 +32,32 @@ namespace team45
 	 */
 	bool Camera::initialize()
 	{
-		// Read the camera properties (XML)
 		FileStorage fs;
-		fs.open(m_cam_data_path + util::CAM_CONFIG_FILE, FileStorage::READ);
+		// Read the checkerboard properties (XML)
+		fs.open(util::DATA_DIR_STR + util::CB_CONFIG_FILE, FileStorage::READ);
+		if (fs.isOpened())
+		{
+			fs["CheckerBoardWidth"] >> m_cb_width;
+			fs["CheckerBoardHeight"] >> m_cb_height;
+			fs["CheckerBoardSquareSize"] >> m_cb_square_size;
+		}
+		fs.release();
+
+		// Init background model
+		initBgModel();
+
+		// Read the camera properties (XML)
+		fs.open(m_data_path + util::CAM_CONFIG_FILE, FileStorage::READ);
 
 		// If the config doesn't exist, calibrate the camera
 		if (!fs.isOpened())
 		{
-			ERROR("Unable to locate: {}{}", m_cam_data_path, util::CAM_CONFIG_FILE);
+			ERROR("Unable to locate: {}{}", m_data_path, util::CAM_CONFIG_FILE);
 			if (!(detIntrinsics() && detExtrinsics())) return false;
 		}
 
 		// Open it again because now we ensured that detExtrinsics has been completed  
-		fs.open(m_cam_data_path + util::CAM_CONFIG_FILE, FileStorage::READ);
+		fs.open(m_data_path + util::CAM_CONFIG_FILE, FileStorage::READ);
 
 		if (fs.isOpened())
 		{
@@ -64,26 +78,28 @@ namespace team45
 				* [ [ fx  0 cx ]
 				*   [  0 fy cy ]
 				*   [  0  0  0 ] ]
-				*/
+			*/
 			m_fx = m_camera_matrix.at<float>(0, 0);
 			m_fy = m_camera_matrix.at<float>(1, 1);
 			m_cx = m_camera_matrix.at<float>(0, 2);
 			m_cy = m_camera_matrix.at<float>(1, 2);
 		}
-		
+
+
+		/*
 		Mat bg_image;
-		if (util::fexists(m_cam_data_path + util::BACKGROUND_IMAGE_FILE))
+		if (util::fexists(m_data_path + util::BACKGROUND_IMAGE_FILE))
 		{
-			bg_image = imread(m_cam_data_path + util::BACKGROUND_IMAGE_FILE);
+			bg_image = imread(m_data_path + util::BACKGROUND_IMAGE_FILE);
 			if (bg_image.empty())
 			{
-				ERROR("Unable to read: {}{}", m_cam_data_path, util::BACKGROUND_IMAGE_FILE);
+				ERROR("Unable to read: {}{}", m_data_path, util::BACKGROUND_IMAGE_FILE);
 				return false;
 			}
 		}
 		else
-		{=
-			WARN("Unable to find background image at: {}{}", m_cam_data_path, util::BACKGROUND_IMAGE_FILE);
+		{
+			WARN("Unable to find background image at: {}{}", m_data_path, util::BACKGROUND_IMAGE_FILE);
 			INFO("Making our own background image!");
 			bg_image = createBgImg();
 		}
@@ -92,10 +108,11 @@ namespace team45
 		// Disect the background image in HSV-color space
 		Mat bg_hsv_im;
 		cvtColor(bg_image, bg_hsv_im, CV_BGR2HSV);
-		split(bg_hsv_im, m_bg_hsv_channels);
+		split(bg_hsv_im, m_bg_hsv_channels); */
+
 
 		// Open the video for this camera
-		m_video = VideoCapture(m_cam_data_path + util::VIDEO_FILE);
+		m_video = VideoCapture(m_data_path + util::VIDEO_FILE);
 		assert(m_video.isOpened());
 
 		// Assess the image size
@@ -110,21 +127,10 @@ namespace team45
 		m_video.set(CAP_PROP_POS_AVI_RATIO, 0);  // Go back to the start
 
 		m_video.release(); //Re-open the file because m_video.set(CAP_PROP_POS_AVI_RATIO, 1) may screw it up
-		m_video = cv::VideoCapture(m_cam_data_path + util::VIDEO_FILE);
+		m_video = cv::VideoCapture(m_data_path + util::VIDEO_FILE);
 
 		initCamLoc();
 		camPtInWorld();
-
-		// Read the checkerboard properties (XML)
-		FileStorage fs;
-		fs.open(util::DATA_DIR_STR + util::CB_CONFIG_FILE, FileStorage::READ);
-		if (fs.isOpened())
-		{
-			fs["CheckerBoardWidth"] >> m_cb_width;
-			fs["CheckerBoardHeight"] >> m_cb_height;
-			fs["CheckerBoardSquareSize"] >> m_cb_square_size;
-		}
-		fs.release();
 
 		return true;
 	}
@@ -137,7 +143,7 @@ namespace team45
 		// Creating vector to store vectors of 2D points for each checkerboard image
 		std::vector<std::vector<cv::Point2f>> imgPoints;
 
-		cv::VideoCapture vc(m_cam_data_path + util::CALIBRATION_VIDEO);
+		cv::VideoCapture vc(m_data_path + util::CALIBRATION_VIDEO);
 		int totalNrOfFrames = vc.get(cv::CAP_PROP_FRAME_COUNT);
 		int skipFrames = totalNrOfFrames / util::CALIB_MAX_NR_FRAMES - 1;
 
@@ -162,7 +168,7 @@ namespace team45
 		INFO("Calibrated camera with error: {}", finalError);
 
 		cv::FileStorage fs;
-		fs.open(m_cam_data_path + util::INTRINSICS_FILE, FileStorage::WRITE);
+		fs.open(m_data_path + util::INTRINSICS_FILE, FileStorage::WRITE);
 		if (fs.isOpened())
 		{
 			fs << "CameraMatrix" << m_intrinsic;
@@ -206,33 +212,35 @@ namespace team45
 		return success;
 	}
 
-	cv::Mat Camera::createBgImg()
+	/*
+		Initializes the background model.
+		Cannot be saved to a file (https://stackoverflow.com/questions/27370222/save-opencv-backgroundsubtractormog-to-file) 
+	*/
+	void Camera::initBgModel()
 	{
-		std::string bg_video_path = m_cam_data_path + util::BACKGROUND_VIDEO_FILE;
+		m_bg_model = cv::createBackgroundSubtractorMOG2();
+		std::string bg_video_path = m_data_path + util::BACKGROUND_VIDEO_FILE;
 
 		assert(util::fexists(bg_video_path));
 		cv::VideoCapture vc(bg_video_path);
 
-		int nrFrames = 1;
 		cv::Mat frame;
-		vc.read(frame);
-		cv::Mat acc(frame);
-		acc.convertTo(acc, CV_32F);
-
-		auto ty = util::type2str(frame.type());
-		auto tx = util::type2str(acc.type());
-
+		cv::Mat tempMask;
 		while (vc.read(frame))
 		{
-			cv::accumulate(frame, acc);
-			nrFrames++;
+			// Learning rate of -1, so it automatically adapts
+			m_bg_model->apply(frame, tempMask, 1);
 		}
 
-		// Calculate average
-		cv::Mat bg = acc / nrFrames;
-		std::string bg_image_path = m_cam_data_path + util::BACKGROUND_IMAGE_FILE;
-		cv::imwrite(bg_image_path, bg);
-		return bg;
+
+		// TESTING
+		/*cv::VideoCapture tvc(m_data_path + util::VIDEO_FILE);
+		tvc.read(frame);
+		cv::imshow("BS TEST", frame);
+		cv::waitKey(0);
+		m_bg_model->apply(frame, tempMask, 0);
+		cv::imshow("BS TEST", tempMask);
+		cv::waitKey(0);*/
 	}
 
 	/**
@@ -302,7 +310,7 @@ namespace team45
 
 		Mat camera_matrix, distortion_coeffs;
 		cv::FileStorage fs;
-		fs.open(m_cam_data_path + util::INTRINSICS_FILE, FileStorage::READ);
+		fs.open(m_data_path + util::INTRINSICS_FILE, FileStorage::READ);
 		if (fs.isOpened())
 		{
 			Mat camera_matrix_f, distortion_coeffs_f;
@@ -315,15 +323,15 @@ namespace team45
 		}
 		else
 		{
-			ERROR("Unable to read camera inntrinsics from: ", m_cam_data_path, util::INTRINSICS_FILE);
+			ERROR("Unable to read camera inntrinsics from: ", m_data_path, util::INTRINSICS_FILE);
 			return false;
 		}
 
-		VideoCapture cap(m_cam_data_path + util::CHECKERBOARD_VIDEO);
+		VideoCapture cap(m_data_path + util::CHECKERBOARD_VIDEO);
 		if (!cap.isOpened())
 		{
-			WARN("Unable to open: ", m_cam_data_path, util::CHECKERBOARD_VIDEO);
-			if (util::fexists(m_cam_data_path + util::CAM_CONFIG_FILE))
+			WARN("Unable to open: ", m_data_path, util::CHECKERBOARD_VIDEO);
+			if (util::fexists(m_data_path + util::CAM_CONFIG_FILE))
 			{
 				return true;
 			}
@@ -460,7 +468,7 @@ namespace team45
 		line(canvas, o, z, util::COLOR_RED, 2, CV_AA);
 		circle(canvas, o, 3, util::COLOR_YELLOW, -1, CV_AA);
 
-		fs.open(m_cam_data_path + util::CAM_CONFIG_FILE, FileStorage::WRITE);
+		fs.open(m_data_path + util::CAM_CONFIG_FILE, FileStorage::WRITE);
 		if (fs.isOpened())
 		{
 			fs << "CameraMatrix" << camera_matrix;
@@ -471,7 +479,7 @@ namespace team45
 		}
 		else
 		{
-			ERROR("Unable to write camera intrinsics+extrinsics to: ", m_cam_data_path, util::CAM_CONFIG_FILE);
+			ERROR("Unable to write camera intrinsics+extrinsics to: ", m_data_path, util::CAM_CONFIG_FILE);
 			return false;
 		}
 

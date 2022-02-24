@@ -16,8 +16,7 @@ include(cmake/set_target_output_directories.cmake)
 include(cmake/set_target_precompiled_header_msvc.cmake)
 
 # Find OpenCV on system
-find_package(OpenCV REQUIRED)                              
-#include_directories(${OpenCV_INCLUDE_DIRS})
+find_package(OpenCV REQUIRED)               
 
 # Set the project name and version
 project(computer-vision VERSION 1.0)
@@ -38,10 +37,13 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(vendor/glfw)
+
 message(STATUS "Adding subdirectory 'spdlog'")
 add_subdirectory(vendor/spdlog)
+
 message(STATUS "Adding subdirectory '01-camera-geometric-calibration'")
 add_subdirectory(01-camera-geometric-calibration)
+
 message(STATUS "Adding subdirectory '02-voxel-reconstruction'")
 add_subdirectory(02-voxel-reconstruction)
 
