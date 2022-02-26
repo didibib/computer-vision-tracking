@@ -13,8 +13,6 @@ namespace team45
 		m_data_path(cdp),
 		m_id(id)
 	{
-		initialized = false;
-
 		m_fx = 0;
 		m_fy = 0;
 		m_cx = 0;
@@ -32,6 +30,7 @@ namespace team45
 	 */
 	bool Camera::initialize()
 	{
+		INFO("Initializing camera {}", m_id);
 		FileStorage fs;
 		// Read the checkerboard properties (XML)
 		fs.open(util::DATA_DIR_STR + util::CB_CONFIG_FILE, FileStorage::READ);
@@ -52,7 +51,7 @@ namespace team45
 		// If the config doesn't exist, calibrate the camera
 		if (!fs.isOpened())
 		{
-			ERROR("Unable to locate: {}{}", m_data_path, util::CAM_CONFIG_FILE);
+			INFO("Unable to locate: {}{}", m_data_path, util::CAM_CONFIG_FILE);
 			if (!(detIntrinsics() && detExtrinsics())) return false;
 		}
 
@@ -148,23 +147,46 @@ namespace team45
 		int skipFrames = totalNrOfFrames / util::CALIB_MAX_NR_FRAMES - 1;
 
 		cv::Mat frame;
+
+		// Get the frame size 
+		vc.read(frame);
+		cv::Size frameSize(frame.rows, frame.cols);
+
+		// When we dont find corners we try for a couple more frames
+		int notFoundCorners = 0;
+
 		while (vc.read(frame))
 		{
+			INFO("Current frame {}", vc.get(cv::CAP_PROP_POS_FRAMES));
 			// Find chessboard corners
 			std::vector<cv::Point3f> objp;
 			std::vector<cv::Point2f> imgp;
-			if (findCbCorners(frame, objp, imgp))
+
+			// Increase contrast
+			frame *= 1.20f;
+
+			bool success = findCbCorners(frame, objp, imgp);
+			if (success)
 			{
 				objPoints.push_back(objp);
 				imgPoints.push_back(imgp);
-
-				// skip an amount of frames
+			}
+			if (success || notFoundCorners++ > util::CALIB_LOCAL_FRAMES)
+			{
+				// Skip an amount of frames
 				for (int i = 0; i < skipFrames; i++)
 					vc.grab();
+				notFoundCorners = 0;
+				continue;
 			}
-		}
 
-		double finalError = cv::calibrateCamera(objPoints, imgPoints, cv::Size(frame.rows, frame.cols), m_intrinsic, m_dist_coeffs, m_R, m_T);
+			// Skip an amount of frames
+			for (int i = 0; i < 9; i++)
+				vc.grab();
+		}
+		INFO("Detected a total of {} images with checkerboard", objPoints.size());
+
+		double finalError = cv::calibrateCamera(objPoints, imgPoints, frameSize, m_intrinsic, m_dist_coeffs, m_R, m_T);
 		INFO("Calibrated camera with error: {}", finalError);
 
 		cv::FileStorage fs;
@@ -181,12 +203,13 @@ namespace team45
 
 	bool Camera::findCbCorners(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints)
 	{
+		INFO("Finding chessboard corners");
 		cv::Mat gray;
 		cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
 
 		// Finding checker board corners
 		// If desired number of corners are found in the image then success = true  
-		bool success = cv::findChessboardCorners(gray, cv::Size(m_cb_height, m_cb_width), imgPoints, cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_FAST_CHECK | cv::CALIB_CB_NORMALIZE_IMAGE);
+		bool success = cv::findChessboardCorners(gray, cv::Size(m_cb_width, m_cb_height), imgPoints, cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_FAST_CHECK | cv::CALIB_CB_NORMALIZE_IMAGE);
 
 		/*
 			* If desired number of corner are detected,
@@ -195,6 +218,7 @@ namespace team45
 		*/
 		if (success)
 		{
+			INFO("Found!");
 			cv::TermCriteria criteria(cv::TermCriteria::EPS | cv::TermCriteria::MAX_ITER, 30, 0.001);
 
 			// refining pixel coordinates for given 2d points.
@@ -207,17 +231,24 @@ namespace team45
 				for (int j{ 0 }; j < m_cb_width; j++)
 					objPoints.push_back(cv::Point3f(j * m_cb_square_size, i * m_cb_square_size, 0));
 			}
+
+			cv:drawChessboardCorners(frame, cv::Size(m_cb_width, m_cb_height), imgPoints, true);
 		}
+
+		/*cv::imshow("CB Corner Display", frame);
+		cv::waitKey(0);
+		cv::destroyWindow("CB Corner Display");*/
 
 		return success;
 	}
 
 	/*
 		Initializes the background model.
-		Cannot be saved to a file (https://stackoverflow.com/questions/27370222/save-opencv-backgroundsubtractormog-to-file) 
+		Cannot be saved to a file (https://stackoverflow.com/questions/27370222/save-opencv-backgroundsubtractormog-to-file)
 	*/
 	void Camera::initBgModel()
 	{
+		INFO("Initialize background model");
 		m_bg_model = cv::createBackgroundSubtractorMOG2();
 		std::string bg_video_path = m_data_path + util::BACKGROUND_VIDEO_FILE;
 
@@ -323,7 +354,7 @@ namespace team45
 		}
 		else
 		{
-			ERROR("Unable to read camera inntrinsics from: ", m_data_path, util::INTRINSICS_FILE);
+			ERROR("Unable to read camera intrinsics from: ", m_data_path, util::INTRINSICS_FILE);
 			return false;
 		}
 
@@ -341,15 +372,15 @@ namespace team45
 			}
 		}
 
-		// read first frame
+		// Read first frame
 		Mat frame;
 		while (frame.empty())
 			cap >> frame;
 		assert(!frame.empty());
 
-		m_BoardCorners = new vector<Point>(); //A pointer because we need access to it from static function onMouse
+		m_BoardCorners = new vector<Point>(); // A pointer because we need access to it from static function onMouse
 
-		string corners_file = util::DATA_DIR_STR + util::CHECKERBOARD_CORNERS;
+		string corners_file = m_data_path + util::CHECKERBOARD_CORNERS;
 		if (util::fexists(corners_file))
 		{
 			FileStorage fs;
@@ -619,6 +650,20 @@ namespace team45
 		const Point3f& coords)
 	{
 		return projectOnView(coords, m_rotation_values, m_translation_values, m_camera_matrix, m_distortion_coeffs);
+	}
+
+	void Camera::createForegroundImage()
+	{
+		cv::Mat tmp;
+		cv::Mat tmpMask;
+		m_bg_model->apply(getFrame(), tmpMask, 0);
+		cv::threshold(tmpMask, tmpMask, 200, 255, cv::THRESH_BINARY);
+
+		// 3x3 morphological kernel, representing a cross 
+		cv::Mat kernel = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3,3));
+
+		cv::erode(tmpMask, tmp, kernel);
+		cv::dilate(tmp, m_foreground_image, kernel);
 	}
 
 } /* namespace team45 */

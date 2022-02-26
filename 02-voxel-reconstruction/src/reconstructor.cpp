@@ -1,9 +1,3 @@
-/*
- * Reconstructor.cpp
- *
- *  Created on: Nov 15, 2013
- *      Author: coert
- */
 #include "cvpch.h"
 #include "reconstructor.h"
 #include "util.h"
@@ -22,7 +16,7 @@ Reconstructor::Reconstructor(
 		const vector<Camera*> &cs) :
 				m_cameras(cs),
 				m_height(2048),
-				m_step(32)
+				m_step(128)
 {
 	for (size_t c = 0; c < m_cameras.size(); ++c)
 	{

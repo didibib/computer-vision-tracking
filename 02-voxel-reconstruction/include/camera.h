@@ -15,11 +15,9 @@ namespace team45
 
 class Camera
 {
-	static std::vector<cv::Point>* m_BoardCorners;   // marked checkerboard corners
+	static std::vector<cv::Point>* m_BoardCorners;   // Marked checkerboard corners
 
-	bool initialized;                              // Is this camera successfully initialized
-
-	const std::string m_data_path;                  // Path to data directory
+	const std::string m_data_path;                   // Path to data directory
 	const int m_id;                                  // Camera ID
 
 	std::vector<cv::Mat> m_bg_hsv_channels;          // Background HSV channel images
@@ -103,11 +101,6 @@ public:
 		return m_bg_hsv_channels;
 	}
 
-	bool isInitialized() const
-	{
-		return initialized;
-	}
-
 	const cv::Size& getSize() const
 	{
 		return m_plane_size;
@@ -118,10 +111,7 @@ public:
 		return m_foreground_image;
 	}
 
-	void setForegroundImage(const cv::Mat& foregroundImage)
-	{
-		m_foreground_image = foregroundImage;
-	}
+	void createForegroundImage();
 
 	const cv::Mat& getFrame() const
 	{

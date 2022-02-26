@@ -1,4 +1,3 @@
-
 #include "cvpch.h"
 #include "voxel_reconstruction.h"
 

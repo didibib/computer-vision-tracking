@@ -1,10 +1,3 @@
-/*
- * Reconstructor.h
- *
- *  Created on: Nov 15, 2013
- *      Author: coert
- */
-
 #ifndef RECONSTRUCTOR_H_
 #define RECONSTRUCTOR_H_
 

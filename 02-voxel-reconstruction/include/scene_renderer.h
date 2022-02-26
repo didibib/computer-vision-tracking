@@ -1,10 +1,3 @@
-/*
- * Scene3DRenderer.h
- *
- *  Created on: Nov 15, 2013
- *      Author: coert
- */
-
 #ifndef SCENE3DRENDERER_H
 #define SCENE3DRENDERER_H
 
@@ -83,9 +76,6 @@ namespace team45
 		Scene3DRenderer(
 			Reconstructor&, const std::vector<Camera*>&);
 		virtual ~Scene3DRenderer();
-
-		void processForeground(
-			Camera*);
 
 		bool processFrame();
 		void setCamera(
@@ -177,12 +167,6 @@ namespace team45
 		int getNum() const { return m_num; }
 
 		Reconstructor& getReconstructor() const { return m_reconstructor; }
-
-#ifdef _WIN32
-		HDC getHDC() const { return _hDC; }
-
-		void setHDC(const HDC hDC) { _hDC = hDC; }
-#endif
 
 		int getPreviousCamera() const { return m_previous_camera; }
 

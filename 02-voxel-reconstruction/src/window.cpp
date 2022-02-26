@@ -37,8 +37,8 @@ namespace team45
 
 		glfwInit();
 		// Window hints need to be set before the creation of the window. They function as additional arguments to glfwCreateWindow.
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 		m_glfwWindow = glfwCreateWindow(width, height, win_name, nullptr, nullptr);
 
 		if (!m_glfwWindow)
@@ -56,7 +56,6 @@ namespace team45
 			return false;
 		}
 
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 		glEnable(GL_DEPTH_TEST);
@@ -80,6 +79,7 @@ namespace team45
 		{
 			update(0);
 			draw();
+
 			glfwSwapBuffers(m_glfwWindow);
 			glfwPollEvents();
 		}
@@ -104,7 +104,7 @@ namespace team45
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		perspectiveGL(50, scene3d.getAspectRatio(), 1, 40000);
-		
+
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 	}
@@ -150,7 +150,7 @@ namespace team45
 		{
 			bool rotate = scene3d.isRotate();
 			scene3d.setRotate(!rotate);
-		break;
+			break;
 		}
 		break;
 		case GLFW_KEY_S:
@@ -221,7 +221,7 @@ namespace team45
 		{
 			double xpos, ypos;
 			//getting cursor position
-			glfwGetCursorPos(window, &xpos, &ypos); 
+			glfwGetCursorPos(window, &xpos, &ypos);
 			const int invert_ypos = (m_Window->getScene3d().getHeight() - ypos) - 1;  // OpenGL viewport coordinates are Cartesian
 			//arcball_start(xpos, invert_ypos);
 		}
@@ -295,18 +295,12 @@ namespace team45
 		if (scene3d.isShowVolume())
 			drawVolume();
 
-		drawVoxels();
+		//drawVoxels();
 
 		if (scene3d.isShowOrg())
 			drawWCoord();
 
 		glFlush();
-
-#ifdef __linux__
-		glutSwapBuffers();
-#elif defined _WIN32
-		SwapBuffers(scene3d.getHDC());
-#endif
 	}
 
 	/**
@@ -314,7 +308,8 @@ namespace team45
 	 * - Handle the keyboard input from the OpenCV window
 	 * - Update the OpenCV video window and frames slider position
 	 */
-	void Window::update(int v){
+	void Window::update(int v)
+	{
 
 		Scene3DRenderer& scene3d = m_Window->getScene3d();
 		if (scene3d.isQuit())
@@ -347,17 +342,6 @@ namespace team45
 			scene3d.processFrame();
 			scene3d.getReconstructor().update();
 			scene3d.setPreviousFrame(scene3d.getCurrentFrame());
-		}
-		else if (scene3d.getHThreshold() != scene3d.getPHThreshold() || scene3d.getSThreshold() != scene3d.getPSThreshold()
-			|| scene3d.getVThreshold() != scene3d.getPVThreshold())
-		{
-			// Update the scene if one of the HSV sliders was moved (when the video is paused)
-			scene3d.processFrame();
-			scene3d.getReconstructor().update();
-
-			scene3d.setPHThreshold(scene3d.getHThreshold());
-			scene3d.setPSThreshold(scene3d.getSThreshold());
-			scene3d.setPVThreshold(scene3d.getVThreshold());
 		}
 
 		// Auto rotate the scene

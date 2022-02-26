@@ -92,43 +92,9 @@ namespace team45
 				m_cameras[c]->getVideoFrame(m_current_frame);
 			}
 			assert(m_cameras[c] != NULL);
-			processForeground(m_cameras[c]);
+			m_cameras[c]->createForegroundImage();
 		}
 		return true;
-	}
-
-	/**
-	 * Separate the background from the foreground
-	 * ie.: Create an 8 bit image where only the foreground of the scene is white (255)
-	 */
-	void Scene3DRenderer::processForeground(
-		Camera* camera)
-	{
-		assert(!camera->getFrame().empty());
-		cv::Mat hsv_image;
-		cvtColor(camera->getFrame(), hsv_image, CV_BGR2HSV);  // from BGR to HSV color space
-
-		std::vector<cv::Mat> channels;
-		split(hsv_image, channels);  // Split the HSV-channels for further analysis
-
-		// Background subtraction H
-		cv::Mat tmp, foreground, background;
-		absdiff(channels[0], camera->getBgHsvChannels().at(0), tmp);
-		threshold(tmp, foreground, m_h_threshold, 255, CV_THRESH_BINARY);
-
-		// Background subtraction S
-		absdiff(channels[1], camera->getBgHsvChannels().at(1), tmp);
-		threshold(tmp, background, m_s_threshold, 255, CV_THRESH_BINARY);
-		bitwise_and(foreground, background, foreground);
-
-		// Background subtraction V
-		absdiff(channels[2], camera->getBgHsvChannels().at(2), tmp);
-		threshold(tmp, background, m_v_threshold, 255, CV_THRESH_BINARY);
-		bitwise_or(foreground, background, foreground);
-
-		// Improve the foreground image
-
-		camera->setForegroundImage(foreground);
 	}
 
 	/**
