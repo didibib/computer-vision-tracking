@@ -15,10 +15,10 @@ namespace team45
 
 	bool Shader::Load(const std::string& filepath)
 	{
-		std::string vert_file_loc = util::DATA_DIR_STR + "shaders/" + filepath + ".vert";
+		std::string vert_file_loc = filepath + ".vert";
 		std::string vert_shader = util::get_file_contents(vert_file_loc.c_str());
 
-		std::string frag_file_loc = util::DATA_DIR_STR + "shaders/" + filepath + ".frag";
+		std::string frag_file_loc = filepath + ".frag";
 		std::string frag_shader = util::get_file_contents(frag_file_loc.c_str());
 
 		TRACE("Loading Shader: {} -> {}, {}", filepath, vert_file_loc, frag_file_loc);

@@ -19,6 +19,7 @@ namespace team45
 		const glm::vec3& GetPos();
 		void SetPos(glm::vec3 const& pos);
 		void SetPos(float const& x, float const& y, float const& z);
+
 		const glm::mat4& GetProjMatrix();
 		// Returns the view matrix calculated using Euler Angles and the LookAt Matrix
 		glm::mat4 GetViewMatrix();
@@ -35,8 +36,8 @@ namespace team45
 		float m_Yaw;
 		float m_Pitch;
 
-		float m_MoveSpeed = 10;
-		float m_MouseSensivity = 0.5f;
+		float m_MoveSpeed = 1000;
+		float m_MouseSensivity = 0.8f;
 	private:
 		glm::vec3 m_Position;
 		glm::vec3 m_Forward;

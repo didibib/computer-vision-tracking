@@ -1,102 +1,192 @@
 #include "cvpch.h"
 #include "voxel_reconstruction.h"
-
-#include "window.h"
-#include "reconstructor.h"
-#include "scene_renderer.h"
+#include "voxel_camera.h"
 #include "util.h"
+
+using namespace std;
+using namespace cv;
 
 namespace team45
 {
 	/**
-	 * Main constructor, initialized all cameras
+	 * Constructor
+	 * Voxel reconstruction class
 	 */
-	VoxelReconstruction::VoxelReconstruction(const int cva) :
-		m_cam_views_amount(cva)
+	VoxelReconstruction::VoxelReconstruction(
+		const vector<VoxelCamera*>& cs) :
+		m_cameras(cs),
+		m_height(2048),
+		m_step(64)
 	{
-		const std::string cam_path = util::DATA_DIR_STR + "cam";
-
-		for (int v = 0; v < m_cam_views_amount; ++v)
+		for (size_t c = 0; c < m_cameras.size(); ++c)
 		{
-			std::stringstream full_cam_path;
-			full_cam_path << cam_path << (v + 1) << PATH_SEP;
-
-			/*
-			 * Assert that there is a video file
-			 */
-			INFO("Video file path: {} {}", full_cam_path.str(), util::VIDEO_FILE);
-			assert(util::fexists(full_cam_path.str() + util::VIDEO_FILE));
-
-			/*
-			 * Assert that if there's no config.xml file, there's an intrinsics file and
-			 * a checkerboard video to create the extrinsics from
-			 */
-			assert(
-				(!util::fexists(full_cam_path.str() + util::CAM_CONFIG_FILE) ?
-					util::fexists(full_cam_path.str() + util::INTRINSICS_FILE) &&
-					util::fexists(full_cam_path.str() + util::CHECKERBOARD_VIDEO)
-					: true)
-			);
-
-			m_cam_views.push_back(new Camera(full_cam_path.str(), v));
+			if (m_plane_size.area() > 0)
+				assert(m_plane_size.width == m_cameras[c]->getSize().width && m_plane_size.height == m_cameras[c]->getSize().height);
+			else
+				m_plane_size = m_cameras[c]->getSize();
 		}
+
+		const size_t edge = 2 * m_height;
+		m_voxels_amount = (edge / m_step) * (edge / m_step) * (m_height / m_step);
+
+		m_toggle_camera.resize(cs.size());
+		initialize();
 	}
 
 	/**
-	 * Main destructor, cleans up pointer vector memory of the cameras
+	 * Deconstructor
+	 * Free the memory of the pointer vectors
 	 */
 	VoxelReconstruction::~VoxelReconstruction()
 	{
-		for (size_t v = 0; v < m_cam_views.size(); ++v)
-			delete m_cam_views[v];
+		for (size_t c = 0; c < m_corners.size(); ++c)
+			delete m_corners.at(c);
+		for (size_t v = 0; v < m_voxels.size(); ++v)
+			delete m_voxels.at(v);
 	}
 
 	/**
-	 * What you can hit
+	 * Create some Look Up Tables
+	 * 	- LUT for the scene's box corners
+	 * 	- LUT with a map of the entire voxelspace: point-on-cam to voxels
+	 * 	- LUT with a map of the entire voxelspace: voxel to cam points-on-cam
 	 */
-	void VoxelReconstruction::showKeys()
+	void VoxelReconstruction::initialize()
 	{
-		std::cout << "VoxelReconstruction v" << util::VERSION << std::endl << std::endl;
-		std::cout << "Use these keys:" << std::endl;
-		std::cout << "q       : Quit" << std::endl;
-		std::cout << "p       : Pause" << std::endl;
-		std::cout << "b       : Frame back" << std::endl;
-		std::cout << "n       : Next frame" << std::endl;
-		std::cout << "r       : Rotate voxel space" << std::endl;
-		std::cout << "s       : Show/hide arcball wire sphere (Linux only)" << std::endl;
-		std::cout << "v       : Show/hide voxel space box" << std::endl;
-		std::cout << "g       : Show/hide ground plane" << std::endl;
-		std::cout << "c       : Show/hide cameras" << std::endl;
-		std::cout << "i       : Show/hide camera numbers (Linux only)" << std::endl;
-		std::cout << "o       : Show/hide origin" << std::endl;
-		std::cout << "t       : Top view" << std::endl;
-		std::cout << "1,2,3,4 : Switch camera #" << std::endl << std::endl;
-		std::cout << "Zoom with the scrollwheel while on the 3D scene" << std::endl;
-		std::cout << "Rotate the 3D scene with left click+drag" << std::endl << std::endl;
-	}
+		// Cube dimensions from [(-m_height, m_height), (-m_height, m_height), (0, m_height)]
+		const int xL = -m_height;
+		const int xR = m_height;
+		const int yL = -m_height;
+		const int yR = m_height;
+		const int zL = 0;
+		const int zR = m_height;
+		const int plane_y = (yR - yL) / m_step;
+		const int plane_x = (xR - xL) / m_step;
+		const int plane = plane_y * plane_x;
 
-	/**
-	 * - If the xml-file with camera intrinsics, extrinsics and distortion is missing,
-	 *   create it from the checkerboard video and the measured camera intrinsics
-	 * - After that initialize the scene rendering classes
-	 * - Run it!
-	 */
-	void VoxelReconstruction::init(int argc, char** argv)
-	{
-		for (int v = 0; v < m_cam_views_amount; ++v)
+		// Save the 8 volume corners
+		// bottom
+		m_corners.push_back(new Point3f((float)xL, (float)yL, (float)zL));
+		m_corners.push_back(new Point3f((float)xL, (float)yR, (float)zL));
+		m_corners.push_back(new Point3f((float)xR, (float)yR, (float)zL));
+		m_corners.push_back(new Point3f((float)xR, (float)yL, (float)zL));
+
+		// top
+		m_corners.push_back(new Point3f((float)xL, (float)yL, (float)zR));
+		m_corners.push_back(new Point3f((float)xL, (float)yR, (float)zR));
+		m_corners.push_back(new Point3f((float)xR, (float)yR, (float)zR));
+		m_corners.push_back(new Point3f((float)xR, (float)yL, (float)zR));
+
+		// Acquire some memory for efficiency
+		cout << "Initializing " << m_voxels_amount << " voxels ";
+		m_voxels.resize(m_voxels_amount);
+
+		int z;
+		int pdone = 0;
+		std::vector<int> camCount{ 0,0,0,0 };
+#pragma omp parallel for schedule(static) private(z) shared(pdone, camCount)
+		for (z = zL; z < zR; z += m_step)
 		{
-			bool has_cam = m_cam_views[v]->initialize();
-			assert(has_cam);
+			const int zp = (z - zL) / m_step;
+			int done = cvRound((zp * plane / (double)m_voxels_amount) * 100.0);
+
+#pragma omp critical
+			if (done > pdone)
+			{
+				pdone = done;
+				cout << done << "%..." << flush;
+			}
+
+			int y, x;
+			for (y = yL; y < yR; y += m_step)
+			{
+				const int yp = (y - yL) / m_step;
+
+				for (x = xL; x < xR; x += m_step)
+				{
+					const int xp = (x - xL) / m_step;
+
+					// Create all voxels
+					Voxel* voxel = new Voxel;
+					voxel->x = x;
+					voxel->y = y;
+					voxel->z = z;
+					voxel->camera_projection = vector<Point>(m_cameras.size());
+					voxel->valid_camera_projection = vector<int>(m_cameras.size(), 0);
+
+					const int p = zp * plane + yp * plane_x + xp;  // The voxel's index
+
+					for (size_t c = 0; c < m_cameras.size(); ++c)
+					{
+						Point point = m_cameras[c]->projectOnView(Point3f((float)x, (float)y, (float)z));
+
+						// Save the pixel coordinates 'point' of the voxel projection on camera 'c'
+						voxel->camera_projection[(int)c] = point;
+
+						// If it's within the camera's FoV, flag the projection
+						if (point.x >= 0 && point.x < m_plane_size.width && point.y >= 0 && point.y < m_plane_size.height)
+						{
+							voxel->valid_camera_projection[(int)c] = 1;
+#pragma omp critical
+							camCount[c]++;
+						}
+
+					}
+
+					//Writing voxel 'p' is not critical as it's unique (thread safe)
+					m_voxels[p] = voxel;
+				}
+			}
 		}
+		INFO("Voxels projected per cam {} {} {} {}", camCount[0], camCount[1], camCount[2], camCount[3]);
+		cout << "done!" << endl;
+	}
 
-		cv::destroyAllWindows();
-		cv::namedWindow(util::VIDEO_WINDOW, CV_WINDOW_KEEPRATIO);
+	/**
+	 * Count the amount of camera's each voxel in the space appears on,
+	 * if that amount equals the amount of cameras, add that voxel to the
+	 * visible_voxels vector
+	 */
+	void VoxelReconstruction::update()
+	{
+		m_visible_voxels.clear();
+		std::vector<Voxel*> visible_voxels;
 
-		Reconstructor reconstructor(m_cam_views);
-		Scene3DRenderer scene3d(reconstructor, m_cam_views);
+		int v;
+		vector<int> visibleCamSum{ 0,0,0,0 };
+#pragma omp parallel for schedule(static) private(v) shared(visible_voxels,visibleCamSum)
+		for (v = 0; v < (int)m_voxels_amount; ++v)
+		{
+			int camera_counter = 0;
+			int camera_on = 0;
+			Voxel* voxel = m_voxels[v];
 
-		Window::GetInstance().init(util::SCENE_WINDOW.c_str(), scene3d);
-		Window::GetInstance().run();
+			for (size_t c = 0; c < m_cameras.size(); c++)
+			{
+				int cam = c;
+				if (!m_toggle_camera[cam]) continue;
+
+				camera_on++;
+				if (voxel->valid_camera_projection[cam])
+				{
+					const Point point = voxel->camera_projection[cam];
+
+					//If there's a white pixel on the foreground image at the projection point, add the camera
+					if (m_cameras[cam]->getForegroundImage().at<uchar>(point) == 255)
+					{
+						camera_counter++;
+					}
+				}
+			}
+
+			// If the voxel is present on all on cameras
+			if (camera_counter == camera_on)
+			{
+#pragma omp critical //push_back is critical
+				visible_voxels.push_back(voxel);
+			}
+		}
+		m_visible_voxels.insert(m_visible_voxels.end(), visible_voxels.begin(), visible_voxels.end());
 	}
 
 } /* namespace team45 */

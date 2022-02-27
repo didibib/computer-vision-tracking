@@ -8,7 +8,7 @@ namespace team45
 	 * Constructor
 	 * Scene properties class (mostly called by Window)
 	 */
-	Scene3DRenderer::Scene3DRenderer(Reconstructor& r, const std::vector<Camera*>& cs) :
+	Scene3DRenderer::Scene3DRenderer(VoxelReconstruction& r, const std::vector<VoxelCamera*>& cs) :
 		m_reconstructor(r),
 		m_cameras(cs),
 		m_num(4),
@@ -16,17 +16,7 @@ namespace team45
 	{
 		m_width = 640;
 		m_height = 480;
-		m_quit = false;
-		m_paused = false;
-		m_rotate = false;
 		m_camera_view = true;
-		m_show_volume = true;
-		m_show_grd_flr = true;
-		m_show_cam = true;
-		m_show_org = true;
-		m_show_arcball = false;
-		m_show_info = true;
-		m_fullscreen = false;
 
 		// Read the checkerboard properties (XML)
 		cv::FileStorage fs;
@@ -46,16 +36,6 @@ namespace team45
 		m_current_frame = 0;
 		m_previous_frame = -1;
 
-		const int H = 0;
-		const int S = 0;
-		const int V = 0;
-		m_h_threshold = H;
-		m_ph_threshold = H;
-		m_s_threshold = S;
-		m_ps_threshold = S;
-		m_v_threshold = V;
-		m_pv_threshold = V;
-
 		cv::createTrackbar("Frame", util::VIDEO_WINDOW, &m_current_frame, m_number_of_frames - 2);
 
 		createFloorGrid();
@@ -67,9 +47,7 @@ namespace team45
 	 */
 	Scene3DRenderer::~Scene3DRenderer()
 	{
-		for (size_t f = 0; f < m_floor_grid.size(); ++f)
-			for (size_t g = 0; g < m_floor_grid[f].size(); ++g)
-				delete m_floor_grid[f][g];
+
 	}
 
 	/**
@@ -96,49 +74,76 @@ namespace team45
 	/**
 	 * Set currently visible camera to the given camera id
 	 */
-	void Scene3DRenderer::setCamera(int camera_id)
+	void Scene3DRenderer::toggleCamera(int camera_id)
 	{
-		m_camera_view = true;
-
-		if (m_current_camera != camera_id)
-		{
-			m_previous_camera = m_current_camera;
-			m_current_camera = camera_id;
-		}
+		m_reconstructor.toggleCamera(camera_id);
 	}
 
 	/**
 	 * Create a LUT for the floor grid
 	 */
-	void Scene3DRenderer::createFloorGrid()
+	std::vector<Vertex> Scene3DRenderer::createFloorGrid()
 	{
+		// edge points of the virtual ground floor grid
+		std::vector<std::vector<glm::vec3*> > floor_grid;
 		const int size = m_reconstructor.getSize() / m_num;
 		const int z_offset = 3;
 
 		// edge 1
-		std::vector<cv::Point3i*> edge1;
+		std::vector<glm::vec3*> edge1;
 		for (int y = -size * m_num; y <= size * m_num; y += size)
-			edge1.push_back(new cv::Point3i(-size * m_num, y, z_offset));
+			edge1.push_back(new glm::vec3(-size * m_num, y, z_offset));
 
 		// edge 2
-		std::vector<cv::Point3i*> edge2;
+		std::vector<glm::vec3*> edge2;
 		for (int x = -size * m_num; x <= size * m_num; x += size)
-			edge2.push_back(new cv::Point3i(x, size * m_num, z_offset));
+			edge2.push_back(new glm::vec3(x, size * m_num, z_offset));
 
 		// edge 3
-		std::vector<cv::Point3i*> edge3;
+		std::vector<glm::vec3*> edge3;
 		for (int y = -size * m_num; y <= size * m_num; y += size)
-			edge3.push_back(new cv::Point3i(size * m_num, y, z_offset));
+			edge3.push_back(new glm::vec3(size * m_num, y, z_offset));
 
 		// edge 4
-		std::vector<cv::Point3i*> edge4;
+		std::vector<glm::vec3*> edge4;
 		for (int x = -size * m_num; x <= size * m_num; x += size)
-			edge4.push_back(new cv::Point3i(x, -size * m_num, z_offset));
+			edge4.push_back(new glm::vec3(x, -size * m_num, z_offset));
 
-		m_floor_grid.push_back(edge1);
-		m_floor_grid.push_back(edge2);
-		m_floor_grid.push_back(edge3);
-		m_floor_grid.push_back(edge4);
+		floor_grid.push_back(edge1);
+		floor_grid.push_back(edge2);
+		floor_grid.push_back(edge3);
+		floor_grid.push_back(edge4);
+
+		std::vector<Vertex> vertices;
+		glm::vec4 color(0.9f, 0.9f, 0.9f, 0.5f);
+
+		int gSize =m_num * 2 + 1;
+		for (int g = 0; g < gSize; g++)
+		{
+			// y lines
+			Vertex v1;
+			v1.Position = *floor_grid[0][g];
+			v1.Color = color;
+
+			Vertex v2;
+			v2.Position = *floor_grid[2][g];
+			v2.Color = color;
+
+			// x lines
+			Vertex v3;
+			v3.Position = *floor_grid[1][g];
+			v3.Color = color;
+
+			Vertex v4;
+			v4.Position = *floor_grid[3][g];
+			v4.Color = color;
+
+			vertices.push_back(v1);
+			vertices.push_back(v2);
+			vertices.push_back(v3);
+			vertices.push_back(v4);
+		}
+		return vertices;
 	}
 
 } /* namespace team45 */

@@ -24,19 +24,14 @@ set(ARCBALL
 	"src/arcball.cpp"
 )
 
-set(CAMERA
-	"include/camera.h"
-	"src/camera.cpp"
+set(VOXEL_CAMERA
+	"include/voxel_camera.h"
+	"src/voxel_camera.cpp"
 )
 
 set(WINDOW
 	"include/window.h"
 	"src/window.cpp"
-)
-
-set(RECONSTRUCTOR 
-	"include/reconstructor.h"
-	"src/reconstructor.cpp"
 )
 
 set(SCENE_RENDERER 
@@ -54,7 +49,7 @@ set(VOXEL_RECONSTRUCTION
 	"src/voxel_reconstruction.cpp"
 )
 
-set(VOXEL
+set(CUBE
 	"include/cube.h"
 	"src/cube.cpp"
 )
@@ -67,14 +62,13 @@ set(GLAD
 add_executable (${TARGET}
 	${ROOT_FILES}
 	${UTIL}
-	${CAMERA}
+	${VOXEL_CAMERA}
 	${WINDOW}
-	${RECONSTRUCTOR}
 	${VOXEL_RECONSTRUCTION}
 	${SCENE_RENDERER}
 	${GLAD}
 	${PCH}
-	${VOXEL}
+	${CUBE}
 	${SCENE_CAMERA}
 )
 
@@ -82,10 +76,9 @@ source_group(\\ FILES ${ROOT_FILES})
 source_group(pch FILES ${PCH})
 source_group(util FILES ${UTIL})
 source_group(glad FILES ${GLAD})
-source_group(camera FILES ${CAMERA})
 source_group(window FILES ${WINDOW})
-source_group(voxel FILES ${RECONSTRUCTOR} ${VOXEL_RECONSTRUCTION} ${VOXEL})
-source_group(scene FILES ${SCENE_RENDERER} ${SCENE_CAMERA})
+source_group(voxel FILES ${VOXEL_RECONSTRUCTION} )
+source_group(scene FILES ${SCENE_RENDERER} ${SCENE_CAMERA} ${VOXEL_CAMERA} ${CUBE})
 
 # Set output directories (function found in: cmake/)
 set_target_output_directories(${TARGET})
@@ -100,7 +93,9 @@ ignore_precompiled_header_msvc(IGNORE_PCH)
 
 # Add macro specifying asset directory
 set(DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data/")
+set(SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders/")
 target_compile_definitions(${TARGET} PUBLIC DATA_DIR_M=${DATA_DIR})
+target_compile_definitions(${TARGET} PUBLIC SHADER_DIR_M=${SHADER_DIR})
 
 target_include_directories(${TARGET} PUBLIC
     "include"

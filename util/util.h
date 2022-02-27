@@ -10,6 +10,7 @@
 namespace util
 {
 	const static std::string DATA_DIR_STR = TOSTRING(DATA_DIR_M);
+	const static std::string SHADER_DIR_STR = TOSTRING(SHADER_DIR_M);
 
 	// Version and Main OpenCV window name
 	const static std::string VERSION = "2.5";

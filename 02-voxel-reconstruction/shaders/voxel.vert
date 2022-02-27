@@ -18,7 +18,7 @@ uniform mat4 u_NormalMatrix;
 void main()
 {
     gl_Position = u_Projection * u_View * u_Model * vec4(a_Position, 1.0);
-    gl_PointSize = gl_Position.z;
+    gl_PointSize = 1000;
     Color = vec4(a_Color, 1.0);
     Uv = a_Uv;
     Normal = mat3(u_NormalMatrix) * a_Normal;

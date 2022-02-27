@@ -19,8 +19,6 @@ namespace team45
 		m_nVertices = vertices.size();
 		m_nIndices = indices.size();
 
-		TRACE("Creating buffers: [vertices:{}][indices:{}]", m_nVertices, m_nIndices);
-
 		// Generate buffers
 		glGenVertexArrays(1, &m_VAO);
 		glGenBuffers(1, &m_VBO);

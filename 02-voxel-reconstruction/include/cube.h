@@ -6,17 +6,6 @@ namespace team45
 	class Cube
 	{
 	public:
-		Cube();
-		void draw(const Shader& shader);
-		void setPos(float& x, float& y, float& z) { m_position = glm::vec3(x, y, z); };
-		const glm::vec3& getPos() { return m_position; }
-
-	private:
-		VertexBuffer m_vb;
-		glm::vec3 m_position;
-		glm::vec3 m_worldUp;
-		glm::mat4 m_model;
-
 		static const std::vector<Vertex> GetVertices()
 		{
 			// Order of vertices of a face

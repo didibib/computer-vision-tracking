@@ -2,30 +2,96 @@
 #ifndef VOXELRECONSTRUCTION_H
 #define VOXELRECONSTRUCTION_H
 
-#include <string>
-#include <vector>
-
-#include "camera.h"
-
 namespace team45
 {
+	class VoxelCamera;
+	class VoxelReconstruction
+	{
+	public:
+		/*
+		 * Voxel structure
+		 * Represents a 3D pixel in the half space
+		 */
+		struct Voxel
+		{
+			int x, y, z;                               // Coordinates
+			cv::Scalar color;                          // Color
+			std::vector<cv::Point> camera_projection;  // Projection location for camera[c]'s FoV (2D)
+			std::vector<int> valid_camera_projection;  // Flag if camera projection is in camera[c]'s FoV
+		};
 
-class VoxelReconstruction
-{
-	const int m_cam_views_amount;
+	private:
+		const std::vector<VoxelCamera*>& m_cameras;  // vector of pointers to cameras
+		const int m_height;                     // Cube half-space height from floor to ceiling
+		const int m_step;                       // Step size (space between voxels)
 
-	std::vector<Camera*> m_cam_views;
+		std::vector<bool> m_toggle_camera;
 
-	
+		std::vector<cv::Point3f*> m_corners;    // Cube half-space corner locations
 
-public:
-	VoxelReconstruction(const int);
-	virtual ~VoxelReconstruction();
+		size_t m_voxels_amount;                 // Voxel count
+		cv::Size m_plane_size;                  // Camera FoV plane WxH
 
-	static void showKeys();
+		std::vector<Voxel*> m_voxels;           // Pointer vector to all voxels in the half-space
+		std::vector<Voxel*> m_visible_voxels;   // Pointer vector to all visible voxels
 
-	void init(int, char**);
-};
+		void initialize();
+
+	public:
+		VoxelReconstruction(const std::vector<VoxelCamera*>&);
+		virtual ~VoxelReconstruction();
+
+		void update();
+
+		const std::vector<Voxel*>& getVisibleVoxels() const
+		{
+			return m_visible_voxels;
+		}
+
+		const std::vector<Voxel*>& getVoxels() const
+		{
+			return m_voxels;
+		}
+
+		void setVisibleVoxels(const std::vector<Voxel*>& visibleVoxels)
+		{
+			m_visible_voxels = visibleVoxels;
+		}
+
+		void setVoxels(const std::vector<Voxel*>& voxels)
+		{
+			m_voxels = voxels;
+		}
+
+		void toggleCamera(const int& cam_id)
+		{
+			if (cam_id >= 0 && cam_id < m_toggle_camera.size())
+			{
+				bool b = m_toggle_camera[cam_id];
+				m_toggle_camera[cam_id] = !b;
+			}
+		}
+
+		const std::vector<cv::Point3f*>& getCorners() const
+		{
+			return m_corners;
+		}
+
+		int getSize() const
+		{
+			return m_height;
+		}
+
+		const cv::Size& getPlaneSize() const
+		{
+			return m_plane_size;
+		}
+
+		const int& getStep() const
+		{
+			return m_step;
+		}
+	};
 
 } /* namespace team45 */
 

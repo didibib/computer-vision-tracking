@@ -2,5 +2,5 @@
 <opencv_storage>
 <CheckerBoardWidth>8</CheckerBoardWidth>
 <CheckerBoardHeight>6</CheckerBoardHeight>
-<CheckerBoardSquareSize>11.5</CheckerBoardSquareSize>
+<CheckerBoardSquareSize>115</CheckerBoardSquareSize>
 </opencv_storage>

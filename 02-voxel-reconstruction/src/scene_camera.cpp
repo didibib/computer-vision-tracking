@@ -7,7 +7,7 @@ namespace team45
 		// Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector 
 		// pointing to the right so we initially rotate a bit to the left.
 		: m_Yaw(-90), m_Pitch(0), m_Fov(fov), m_ViewWidth(viewWidth), m_ViewHeight(viewHeight), m_Near(nearPlane), m_Far(farPlane),
-		m_Forward(0.f, 0.f, -1.f), m_Up(0.f, 1.f, 0.f), m_Right(1.f, 0.f, 0.f), m_WorldUp(0.f, 1.f, 0.f)
+		m_Forward(0.f, -1.f, 0.f), m_Up(0.f, 0.f, 1.f), m_Right(1.f, 0.f, 0.f), m_WorldUp(0.f, 0.f, 1.f)
 	{
 		m_Projection = glm::perspective(glm::radians(m_Fov), (float)m_ViewWidth / (float)m_ViewHeight, m_Near, m_Far);
 		UpdateCameraVectors();
@@ -98,9 +98,9 @@ namespace team45
 	{
 		// Calculate the new mForward vector
 		glm::vec3 forward;
-		forward.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
-		forward.y = sin(glm::radians(m_Pitch));
-		forward.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
+		forward.x = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
+		forward.y = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
+		forward.z = sin(glm::radians(m_Pitch));
 		m_Forward = glm::normalize(forward);
 		// Also re-calculate the Right and Up vector
 		// normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.

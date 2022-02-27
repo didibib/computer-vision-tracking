@@ -2,21 +2,16 @@
 #define SCENE3DRENDERER_H
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/core/operations.hpp>
-#include <vector>
-#ifdef _WIN32
-#include <Windows.h>
-#endif
-
-#include "camera.h"
-#include "reconstructor.h"
+#include "voxel_camera.h"
+#include "voxel_reconstruction.h"
+#include "vertex_buffer.h"
 
 namespace team45
 {
 	class Scene3DRenderer
 	{
-		Reconstructor& m_reconstructor;          // Reference to Reconstructor
-		const std::vector<Camera*>& m_cameras;  // Reference to camera's vector
+		VoxelReconstruction& m_reconstructor;          // Reference to Reconstructor
+		const std::vector<VoxelCamera*>& m_cameras;  // Reference to camera's vector
 		const int m_num;                        // Floor grid scale
 		const float m_sphere_radius;            // ArcBall sphere radius
 
@@ -31,17 +26,6 @@ namespace team45
 		 * the mouse like a globe
 		 */
 		bool m_camera_view;                       // flag if scene viewed from a camera
-		bool m_show_volume;                       // flag draw half-space edges
-		bool m_show_grd_flr;                      // flag draw grid on floor
-		bool m_show_cam;                          // flag draw cameras into scene
-		bool m_show_org;                          // flag draw origin into scene
-		bool m_show_arcball;                      // flag make arcball visible in scene
-		bool m_show_info;                         // flag draw information (text) into scene
-		bool m_fullscreen;                        // flag GL is full screen
-
-		bool m_quit;                              // flag status is quit next iteration
-		bool m_paused;                            // flag status is pause video
-		bool m_rotate;                            // flag auto rotate GL scene
 
 		long m_number_of_frames;                  // number of video frames
 		int m_current_frame;                      // current frame index
@@ -50,26 +34,16 @@ namespace team45
 		int m_current_camera;                     // number of currently selected camera view point
 		int m_previous_camera;                    // number of previously selected camera view point
 
-		int m_h_threshold;                        // Hue threshold number for background subtraction
-		int m_ph_threshold;                       // Hue threshold value at previous iteration (update awareness)
-		int m_s_threshold;                        // Saturation threshold number for background subtraction
-		int m_ps_threshold;                       // Saturation threshold value at previous iteration (update awareness)
-		int m_v_threshold;                        // Value threshold number for background subtraction
-		int m_pv_threshold;                       // Value threshold value at previous iteration (update awareness)
-
-		// edge points of the virtual ground floor grid
-		std::vector<std::vector<cv::Point3i*> > m_floor_grid;
-
-		void createFloorGrid();
-
 	public:
-		Scene3DRenderer(Reconstructor&, const std::vector<Camera*>&);
+		Scene3DRenderer(VoxelReconstruction&, const std::vector<VoxelCamera*>&);
 		virtual ~Scene3DRenderer();
 
 		bool processFrame();
-		void setCamera(int);
+		void toggleCamera(int);
 
-		const std::vector<Camera*>& getCameras() const { return m_cameras; }
+		std::vector<Vertex> createFloorGrid();
+
+		const std::vector<VoxelCamera*>& getCameras() const { return m_cameras; }
 
 		bool isCameraView() const { return m_camera_view; }
 
@@ -79,52 +53,13 @@ namespace team45
 
 		void setCurrentCamera(int currentCamera) { m_current_camera = currentCamera; }
 
-		bool isShowArcball() const { return m_show_arcball; }
-
-		void setShowArcball(bool showArcball) { m_show_arcball = showArcball; }
-
-		bool isShowCam() const { return m_show_cam; }
-
-		void setShowCam(bool showCam) { m_show_cam = showCam; }
-
-		bool isShowGrdFlr() const { return m_show_grd_flr; }
-
-		void setShowGrdFlr(bool showGrdFlr) { m_show_grd_flr = showGrdFlr; }
-
-		bool isShowInfo() const { return m_show_info; }
-
-		void setShowInfo(bool showInfo) { m_show_info = showInfo; }
-
-		bool isShowOrg() const { return m_show_org; }
-		void setShowOrg(bool showOrg) { m_show_org = showOrg; }
-
-		bool isShowVolume() const { return m_show_volume; }
-
-		void setShowVolume(bool showVolume) { m_show_volume = showVolume; }
-
-		bool isShowFullscreen() const { return m_fullscreen; }
-
-		void setShowFullscreen(bool showFullscreen) { m_fullscreen = showFullscreen; }
-
 		int getCurrentFrame() const { return m_current_frame; }
 
 		void setCurrentFrame(int currentFrame) { m_current_frame = currentFrame; }
 
-		bool isPaused() const { return m_paused; }
-
-		void setPaused(bool paused) { m_paused = paused; }
-
-		bool isRotate() const { return m_rotate; }
-
-		void setRotate(bool rotate) { m_rotate = rotate; }
-
 		long getNumberOfFrames() const { return m_number_of_frames; }
 
 		void setNumberOfFrames( long numberOfFrames) { m_number_of_frames = numberOfFrames; }
-
-		bool isQuit() const { return m_quit; }
-
-		void setQuit( bool quit) { m_quit = quit; }
 
 		int getPreviousFrame() const { return m_previous_frame; }
 
@@ -140,37 +75,11 @@ namespace team45
 
 		float getAspectRatio() const { return m_aspect_ratio; }
 
-		const std::vector<std::vector<cv::Point3i*> >& getFloorGrid() const { return m_floor_grid; }
-
 		int getNum() const { return m_num; }
 
-		Reconstructor& getReconstructor() const { return m_reconstructor; }
+		VoxelReconstruction& getReconstructor() const { return m_reconstructor; }
 
 		int getPreviousCamera() const { return m_previous_camera; }
-
-		int getHThreshold() const { return m_h_threshold; }
-
-		int getSThreshold() const { return m_s_threshold; }
-
-		int getVThreshold() const { return m_v_threshold; }
-
-		int getPHThreshold() const { return m_ph_threshold; }
-
-		int getPSThreshold() const { return m_ps_threshold; }
-
-		int getPVThreshold() const { return m_pv_threshold; }
-
-		void setPHThreshold( int phThreshold) { m_ph_threshold = phThreshold; }
-
-		void setPSThreshold( int psThreshold) { m_ps_threshold = psThreshold; }
-
-		void setPVThreshold( int pvThreshold) { m_pv_threshold = pvThreshold; }
-
-		void setHThreshold( int threshold) { m_h_threshold = threshold; }
-
-		void setSThreshold( int threshold) { m_s_threshold = threshold; }
-
-		void setVThreshold( int threshold) { m_v_threshold = threshold; }
 
 		const cv::Size& getBoardSize() const { return m_board_size; }
 

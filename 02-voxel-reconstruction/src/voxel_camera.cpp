@@ -1,5 +1,5 @@
 #include "cvpch.h"
-#include "camera.h"
+#include "voxel_camera.h"
 #include "util.h"
 
 using namespace std;
@@ -7,9 +7,9 @@ using namespace cv;
 
 namespace team45
 {
-	vector<Point>* Camera::m_BoardCorners;  // marked checkerboard corners
+	vector<Point>* VoxelCamera::m_BoardCorners;  // marked checkerboard corners
 
-	Camera::Camera(const string& cdp, const int id) :
+	VoxelCamera::VoxelCamera(const string& cdp, const int id) :
 		m_data_path(cdp),
 		m_id(id)
 	{
@@ -20,7 +20,7 @@ namespace team45
 		m_frame_amount = 0;
 	}
 
-	Camera::~Camera()
+	VoxelCamera::~VoxelCamera()
 	{
 		delete m_bg_model;
 	}
@@ -28,7 +28,7 @@ namespace team45
 	/**
 	 * Initialize this camera
 	 */
-	bool Camera::initialize()
+	bool VoxelCamera::initialize()
 	{
 		INFO("Initializing camera {}", m_id);
 		FileStorage fs;
@@ -134,7 +134,7 @@ namespace team45
 		return true;
 	}
 
-	bool Camera::detIntrinsics()
+	bool VoxelCamera::detIntrinsics()
 	{
 		// Creating vector to store vectors of 3D points for each checkerboard image
 		std::vector<std::vector<cv::Point3f>> objPoints;
@@ -201,7 +201,7 @@ namespace team45
 		return true;
 	}
 
-	bool Camera::findCbCorners(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints)
+	bool VoxelCamera::findCbCorners(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints)
 	{
 		INFO("Finding chessboard corners");
 		cv::Mat gray;
@@ -246,7 +246,7 @@ namespace team45
 		Initializes the background model.
 		Cannot be saved to a file (https://stackoverflow.com/questions/27370222/save-opencv-backgroundsubtractormog-to-file)
 	*/
-	void Camera::initBgModel()
+	void VoxelCamera::initBgModel()
 	{
 		INFO("Initialize background model");
 		m_bg_model = cv::createBackgroundSubtractorMOG2();
@@ -277,7 +277,7 @@ namespace team45
 	/**
 	 * Set and return the next frame from the video
 	 */
-	Mat& Camera::advanceVideoFrame()
+	Mat& VoxelCamera::advanceVideoFrame()
 	{
 		m_video >> m_frame;
 		assert(!m_frame.empty());
@@ -287,7 +287,7 @@ namespace team45
 	/**
 	 * Set the video location to the given frame number
 	 */
-	void Camera::setVideoFrame(int frame_number)
+	void VoxelCamera::setVideoFrame(int frame_number)
 	{
 		m_video.set(CAP_PROP_POS_FRAMES, frame_number);
 	}
@@ -295,7 +295,7 @@ namespace team45
 	/**
 	 * Set and return frame of the video location at the given frame number
 	 */
-	Mat& Camera::getVideoFrame(
+	Mat& VoxelCamera::getVideoFrame(
 		int frame_number)
 	{
 		setVideoFrame(frame_number);
@@ -305,7 +305,7 @@ namespace team45
 	/**
 	 * Handle mouse events
 	 */
-	void Camera::onMouse(int event, int x, int y, int flags, void* param)
+	void VoxelCamera::onMouse(int event, int x, int y, int flags, void* param)
 	{
 		switch (event)
 		{
@@ -334,7 +334,7 @@ namespace team45
 	 * - Allows for hand pointing the checkerboard corners
 	 */
 	 // const string &data_path, const string &cam_data_path, const string &checker_vid_fname, const string &intr_filename, const string &out_fname
-	bool Camera::detExtrinsics()
+	bool VoxelCamera::detExtrinsics()
 	{
 		const Size board_size(m_cb_width, m_cb_height);
 		const int side_len = m_cb_square_size;  // Actual size of the checkerboard square in millimeters
@@ -525,7 +525,7 @@ namespace team45
 	/**
 	 * Calculate the camera's location in the world
 	 */
-	void Camera::initCamLoc()
+	void VoxelCamera::initCamLoc()
 	{
 		Mat r;
 		Rodrigues(m_rotation_values, r);
@@ -577,7 +577,7 @@ namespace team45
 	/**
 	 * Calculate the camera's plane and fov in the 3D scene
 	 */
-	void Camera::camPtInWorld()
+	void VoxelCamera::camPtInWorld()
 	{
 		m_camera_plane.clear();
 		m_camera_plane.push_back(m_camera_location);
@@ -604,7 +604,7 @@ namespace team45
 	/**
 	 * Convert a point on the camera image to a point in the world
 	 */
-	Point3f Camera::ptToW3D(
+	Point3f VoxelCamera::ptToW3D(
 		const Point& point)
 	{
 		return cam3DtoW3D(Point3f(float(point.x - m_cx), float(point.y - m_cy), (m_fx + m_fy) / 2));
@@ -613,7 +613,7 @@ namespace team45
 	/**
 	 * Convert a point on the camera to a point in the world
 	 */
-	Point3f Camera::cam3DtoW3D(
+	Point3f VoxelCamera::cam3DtoW3D(
 		const Point3f& cam_point)
 	{
 		Mat Xc(4, 1, CV_32F);
@@ -630,7 +630,7 @@ namespace team45
 	/**
 	 * Projects points from the scene space to the image coordinates
 	 */
-	cv::Point Camera::projectOnView(
+	cv::Point VoxelCamera::projectOnView(
 		const cv::Point3f& coords, 
 		const cv::Mat& rotation_values, 
 		const cv::Mat& translation_values, 
@@ -649,12 +649,12 @@ namespace team45
 	/**
 	 * Non-static for backwards compatibility
 	 */
-	Point Camera::projectOnView(const Point3f& coords)
+	Point VoxelCamera::projectOnView(const Point3f& coords)
 	{
 		return projectOnView(coords, m_rotation_values, m_translation_values, m_camera_matrix, m_distortion_coeffs);
 	}
 
-	void Camera::createForegroundImage()
+	void VoxelCamera::createForegroundImage()
 	{
 		cv::Mat tmp, tmpMask, foreground_mask;
 		m_bg_model->apply(getFrame(), tmpMask, 0);
@@ -675,6 +675,9 @@ namespace team45
 		{
 			m_binary_diff = foreground_mask;
 		}
+		cv::Mat tmp2;
+		cv::bitwise_not(m_binary_diff, tmp2);
+		cv::bitwise_or(m_binary_diff, tmp2, m_foreground_image);
 		m_foreground_image = foreground_mask;
 	}
 

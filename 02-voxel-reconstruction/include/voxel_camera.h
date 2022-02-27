@@ -2,18 +2,12 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <string>
-#include <vector>
-
 namespace team45
 {
 
 #define MAIN_WINDOW "Checkerboard Marking"
 
-class Camera
+class VoxelCamera
 {
 	static std::vector<cv::Point>* m_BoardCorners;   // Marked checkerboard corners
 
@@ -63,8 +57,8 @@ class Camera
 	cv::Point3f cam3DtoW3D(const cv::Point3f &);
 
 public:
-	Camera(const std::string &, int);
-	virtual ~Camera();
+	VoxelCamera(const std::string &, int);
+	virtual ~VoxelCamera();
 
 	bool initialize();
 
