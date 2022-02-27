@@ -10,7 +10,18 @@ using namespace team45;
 const int m_cam_views_amount = 4;
 static std::vector<VoxelCamera*> m_cam_views;
 
-void showKeys();
+
+void showKeys()
+{
+	std::cout << "VoxelReconstruction v" << util::VERSION << std::endl << std::endl;
+	std::cout << "Use these keys:" << std::endl;
+	std::cout << "w,a,s,d : Move scene camera" << std::endl;
+	std::cout << "1,2,3,4 : Toggle voxel camera #" << std::endl;
+	std::cout << "p       : Pause" << std::endl;
+	std::cout << "b       : Frame back" << std::endl;
+	std::cout << "n       : Next frame" << std::endl << std::endl;
+}
+
 void getCameraData()
 {
 	const std::string cam_path = util::DATA_DIR_STR + "cam";
@@ -72,15 +83,4 @@ int main(int argc, char** argv)
 	for (size_t v = 0; v < m_cam_views.size(); ++v)
 		delete m_cam_views[v];
 	return EXIT_SUCCESS;
-}
-
-void showKeys()
-{
-	std::cout << "VoxelReconstruction v" << util::VERSION << std::endl << std::endl;
-	std::cout << "Use these keys:" << std::endl;
-	std::cout << "w,a,s,d : Move scene camera" << std::endl;
-	std::cout << "1,2,3,4 : Toggle voxel camera #" << std::endl;
-	std::cout << "p       : Pause" << std::endl;
-	std::cout << "b       : Frame back" << std::endl;
-	std::cout << "n       : Next frame" << std::endl << std::endl;
 }
