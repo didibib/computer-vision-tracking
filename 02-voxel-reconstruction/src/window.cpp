@@ -233,10 +233,10 @@ namespace team45
 			break;
 		}
 
-		int num = key - GLFW_KEY_0;
-		if (num >= 0 && num < (int)scene3d.getCameras().size())
+		int num = key - GLFW_KEY_1;
+		if (num >= 1 && num <= (int)scene3d.getCameras().size())
 		{
-			scene3d.toggleCamera(num);
+			scene3d.toggleCamera(num - 1);
 		}
 		
 	}
