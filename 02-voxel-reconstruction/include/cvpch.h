@@ -43,5 +43,10 @@
 #include <GL/glu.h>
 #endif
 
+// GLM headers
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/fast_square_root.hpp>
+
 // Own headers
 #include "logger.h"

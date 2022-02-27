@@ -24,6 +24,7 @@ class Camera
 
 	cv::Ptr<cv::BackgroundSubtractorMOG2> m_bg_model;
 	cv::Mat m_foreground_image;                      // This camera's foreground image (binary)
+	cv::Mat m_binary_diff;							 // Binary difference of the current frame's foreground image and the previous frame
 
 	cv::VideoCapture m_video;                        // Video reader
 
@@ -109,6 +110,11 @@ public:
 	const cv::Mat& getForegroundImage() const
 	{
 		return m_foreground_image;
+	}
+
+	const cv::Mat& getBinaryDifference() const
+	{
+		return m_binary_diff;
 	}
 
 	void createForegroundImage();

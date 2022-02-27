@@ -57,12 +57,8 @@ namespace team45
 		m_pv_threshold = V;
 
 		cv::createTrackbar("Frame", util::VIDEO_WINDOW, &m_current_frame, m_number_of_frames - 2);
-		cv::createTrackbar("H", util::VIDEO_WINDOW, &m_h_threshold, 255);
-		cv::createTrackbar("S", util::VIDEO_WINDOW, &m_s_threshold, 255);
-		cv::createTrackbar("V", util::VIDEO_WINDOW, &m_v_threshold, 255);
 
 		createFloorGrid();
-		setTopView();
 	}
 
 	/**
@@ -100,37 +96,15 @@ namespace team45
 	/**
 	 * Set currently visible camera to the given camera id
 	 */
-	void Scene3DRenderer::setCamera(
-		int camera)
+	void Scene3DRenderer::setCamera(int camera_id)
 	{
 		m_camera_view = true;
 
-		if (m_current_camera != camera)
+		if (m_current_camera != camera_id)
 		{
 			m_previous_camera = m_current_camera;
-			m_current_camera = camera;
-			m_arcball_eye.x = m_cameras[camera]->getCameraPlane()[0].x;
-			m_arcball_eye.y = m_cameras[camera]->getCameraPlane()[0].y;
-			m_arcball_eye.z = m_cameras[camera]->getCameraPlane()[0].z;
-			m_arcball_up.x = 0.0f;
-			m_arcball_up.y = 0.0f;
-			m_arcball_up.z = 1.0f;
+			m_current_camera = camera_id;
 		}
-	}
-
-	/**
-	 * Set the 3D scene to bird's eye view
-	 */
-	void Scene3DRenderer::setTopView()
-	{
-		m_camera_view = false;
-		if (m_current_camera != -1)
-			m_previous_camera = m_current_camera;
-		m_current_camera = -1;
-
-		m_arcball_eye = vec(0.0f, 0.0f, 10000.0f);
-		m_arcball_centre = vec(0.0f, 0.0f, 0.0f);
-		m_arcball_up = vec(0.0f, 1.0f, 0.0f);
 	}
 
 	/**

@@ -94,10 +94,9 @@ namespace team45
 
 		Reconstructor reconstructor(m_cam_views);
 		Scene3DRenderer scene3d(reconstructor, m_cam_views);
-		Window window(scene3d);
 
-		window.init(util::SCENE_WINDOW.c_str());
-		window.run();
+		Window::GetInstance().init(util::SCENE_WINDOW.c_str(), scene3d);
+		Window::GetInstance().run();
 	}
 
 } /* namespace team45 */

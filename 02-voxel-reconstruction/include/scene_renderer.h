@@ -8,13 +8,11 @@
 #include <Windows.h>
 #endif
 
-#include "arcball.h"
 #include "camera.h"
 #include "reconstructor.h"
 
 namespace team45
 {
-
 	class Scene3DRenderer
 	{
 		Reconstructor& m_reconstructor;          // Reference to Reconstructor
@@ -32,10 +30,6 @@ namespace team45
 		 * Three vectors for the arcball that allows for manipulating the scene with
 		 * the mouse like a globe
 		 */
-		vec m_arcball_eye;                        // arcball "eye" vector
-		vec m_arcball_centre;                     // arcball "centre" vector
-		vec m_arcball_up;                         // arcball "up" vector
-
 		bool m_camera_view;                       // flag if scene viewed from a camera
 		bool m_show_volume;                       // flag draw half-space edges
 		bool m_show_grd_flr;                      // flag draw grid on floor
@@ -68,19 +62,12 @@ namespace team45
 
 		void createFloorGrid();
 
-#ifdef _WIN32
-		HDC _hDC;
-#endif
-
 	public:
-		Scene3DRenderer(
-			Reconstructor&, const std::vector<Camera*>&);
+		Scene3DRenderer(Reconstructor&, const std::vector<Camera*>&);
 		virtual ~Scene3DRenderer();
 
 		bool processFrame();
-		void setCamera(
-			int);
-		void setTopView();
+		void setCamera(int);
 
 		const std::vector<Camera*>& getCameras() const { return m_cameras; }
 
@@ -119,10 +106,7 @@ namespace team45
 
 		void setShowFullscreen(bool showFullscreen) { m_fullscreen = showFullscreen; }
 
-		int getCurrentFrame() const
-		{
-			return m_current_frame;
-		}
+		int getCurrentFrame() const { return m_current_frame; }
 
 		void setCurrentFrame(int currentFrame) { m_current_frame = currentFrame; }
 
@@ -150,13 +134,7 @@ namespace team45
 
 		int getWidth() const { return m_width; }
 
-		void setSize( int w, int h, float a) { m_width = w; m_height = h; m_aspect_ratio = a; }
-
-		const vec& getArcballCentre() const { return m_arcball_centre; }
-
-		const vec& getArcballEye() const { return m_arcball_eye; }
-
-		const vec& getArcballUp() const { return m_arcball_up; }
+		void setSize( int w, int h) { m_width = w; m_height = h; m_aspect_ratio = (float)w / (float)h; }
 
 		float getSphereRadius() const { return m_sphere_radius; }
 

@@ -5,40 +5,38 @@
 #include "camera.h"
 #include "reconstructor.h"
 #include "scene_renderer.h"
+#include "shader.h"
+#include "vertex_buffer.h"
+#include "scene_camera.h"
+#include "voxel.h"
 
 namespace team45
 {
-
-	Window* Window::m_Window;
-
-	Window::Window(Scene3DRenderer& s3d) : m_scene3d(s3d)
-	{
-		// static pointer to this class so we can get to it from the static GL events
-		m_Window = this;
-	}
+	Window& WINDOW = Window::GetInstance();
 
 	Window::~Window()
 	{
+		delete m_scene3d;
+		delete m_voxel_shader;
 		glfwDestroyWindow(m_glfwWindow);
 		glfwTerminate();
 	}
 
 	/**
-	 * Main OpenGL initialisation for Windows-like system (without Glut)
+	 * Main OpenGL initialisation for Windows-like system
 	 */
-	bool Window::init(const char* win_name)
+	bool Window::init(const char* win_name, Scene3DRenderer& s3d)
 	{
-		Scene3DRenderer& scene3d = m_Window->getScene3d();
-
+		m_scene3d = &s3d;
 		/*      Screen/display attributes*/
-		int width = scene3d.getWidth();
-		int height = scene3d.getHeight();
+		int width = m_scene3d->getWidth();
+		int height = m_scene3d->getHeight();
 		int bits = 32;
 
 		glfwInit();
 		// Window hints need to be set before the creation of the window. They function as additional arguments to glfwCreateWindow.
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		m_glfwWindow = glfwCreateWindow(width, height, win_name, nullptr, nullptr);
 
 		if (!m_glfwWindow)
@@ -56,16 +54,25 @@ namespace team45
 			return false;
 		}
 
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
 		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LESS);
 
 		// Setup callbacks
 		glfwSetKeyCallback(m_glfwWindow, keyCallback);
 		glfwSetMouseButtonCallback(m_glfwWindow, mouseCallback);
 		glfwSetScrollCallback(m_glfwWindow, scrollCallback);
 		glfwSetCursorPosCallback(m_glfwWindow, cursorCallback);
+		glfwSetFramebufferSizeCallback(m_glfwWindow, frameBufferCallback);
+		glfwSetCursorEnterCallback(m_glfwWindow, cursorEnterCallback);
+		glfwSetWindowFocusCallback(m_glfwWindow, windowFocusCallback);
+
+		// Load Shader
+		m_voxel_shader = new Shader();
+		m_voxel_shader->Load("voxel");
+
+		// Create camera
+		m_scene_cam = new SceneCamera(60.f, width, height, 0.1f, 10000.f);
+		m_scene_cam->SetPos(0, 0, 3);
+		m_cube = new Cube();
 
 		return true;
 	}
@@ -77,7 +84,11 @@ namespace team45
 	{
 		while (!glfwWindowShouldClose(m_glfwWindow))
 		{
-			update(0);
+			m_currentTime = glfwGetTime();
+			m_deltaTime = m_currentTime - m_previousTime;
+			m_previousTime = m_currentTime;
+
+			update();
 			draw();
 
 			glfwSwapBuffers(m_glfwWindow);
@@ -99,219 +110,20 @@ namespace team45
 
 	void Window::reset()
 	{
-		Scene3DRenderer& scene3d = m_Window->getScene3d();
-
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		perspectiveGL(50, scene3d.getAspectRatio(), 1, 40000);
-
+		perspectiveGL(50, WINDOW.getScene3d().getAspectRatio(), 1, 40000);
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 	}
-
-	void Window::quit()
-	{
-		m_Window->getScene3d().setQuit(true);
-		exit(EXIT_SUCCESS);
-	}
-
-	/**
-	 * Handle all keyboard input
-	 */
-	void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-	{
-		Scene3DRenderer& scene3d = m_Window->getScene3d();
-		if (action != GLFW_PRESS) return;
-		switch (key)
-		{
-		case GLFW_KEY_Q:
-		{
-			scene3d.setQuit(true);
-		}
-		break;
-		case GLFW_KEY_P:
-		{
-			bool paused = scene3d.isPaused();
-			scene3d.setPaused(!paused);
-		}
-		break;
-		case GLFW_KEY_B:
-		{
-			scene3d.setCurrentFrame(scene3d.getCurrentFrame() - 1);
-
-		}
-		break;
-		case GLFW_KEY_N:
-		{
-			scene3d.setCurrentFrame(scene3d.getCurrentFrame() + 1);
-		}
-		break;
-		case GLFW_KEY_R:
-		{
-			bool rotate = scene3d.isRotate();
-			scene3d.setRotate(!rotate);
-			break;
-		}
-		break;
-		case GLFW_KEY_S:
-		{
-#ifdef _WIN32
-			std::cerr << "ShowArcball() not supported on Windows!" << std::endl;
-#endif
-			bool arcball = scene3d.isShowArcball();
-			scene3d.setShowArcball(!arcball);
-		}
-		break;
-		case GLFW_KEY_V:
-		{
-			bool volume = scene3d.isShowVolume();
-			scene3d.setShowVolume(!volume);
-		}
-		break;
-		case GLFW_KEY_G:
-		{
-			bool floor = scene3d.isShowGrdFlr();
-			scene3d.setShowGrdFlr(!floor);
-		}
-		break;
-		case GLFW_KEY_C:
-		{
-			bool cam = scene3d.isShowCam();
-			scene3d.setShowCam(!cam);
-		}
-		break;
-		case GLFW_KEY_I:
-		{
-#ifdef _WIN32
-			std::cerr << "ShowInfo() not supported on Windows!" << std::endl;
-#endif
-			bool info = scene3d.isShowInfo();
-			scene3d.setShowInfo(!info);
-		}
-		break;
-		case GLFW_KEY_O:
-		{
-			bool origin = scene3d.isShowOrg();
-			scene3d.setShowOrg(!origin);
-		}
-		break;
-		case GLFW_KEY_T:
-		{
-			scene3d.setTopView();
-			reset();
-			//arcball_reset();
-		}
-		break;
-		default:
-			break;
-		}
-
-		int num = key - GLFW_KEY_0;
-		if (num >= 0 && num <= (int)scene3d.getCameras().size())
-		{
-			scene3d.setCamera(num);
-			reset();
-			//arcball_reset();
-		}
-	}
-
-	void Window::mouseCallback(GLFWwindow* window, int button, int action, int mods)
-	{
-		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-		{
-			double xpos, ypos;
-			//getting cursor position
-			glfwGetCursorPos(window, &xpos, &ypos);
-			const int invert_ypos = (m_Window->getScene3d().getHeight() - ypos) - 1;  // OpenGL viewport coordinates are Cartesian
-			//arcball_start(xpos, invert_ypos);
-		}
-	}
-
-	void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
-	{
-		if (yoffset < 0 && !m_Window->getScene3d().isCameraView())
-		{
-			//arcball_add_distance(+250);
-		}
-		else if (yoffset > 0 && !m_Window->getScene3d().isCameraView())
-		{
-			//arcball_add_distance(-250);
-		}
-	}
-
-	void Window::cursorCallback(GLFWwindow* window, double xpos, double ypos)
-	{
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-		{
-			motion(xpos, ypos);
-		}
-	}
-
-	/**
-	 * Rotate the scene
-	 */
-	void Window::motion(int x, int y)
-	{
-		// motion is only called when a mouse button is held down
-		int invert_y = (m_Window->getScene3d().getHeight() - y) - 1;
-		//arcball_move(x, invert_y);
-	}
-
-	/**
-	 * Reshape the GL-window
-	 */
-	void Window::reshape(int width, int height)
-	{
-		float ar = (float)width / (float)height;
-		m_Window->getScene3d().setSize(width, height, ar);
-		glViewport(0, 0, width, height);
-		reset();
-	}
-
-	/**
-	 * Render the 3D scene
-	 */
-	void Window::draw()
-	{
-		// Enable depth testing
-		glEnable(GL_DEPTH_TEST);
-
-		// Here's our rendering. Clears the screen
-		// to black, clear the color and depth
-		// buffers, and reset our modelview matrix.
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glLoadIdentity();
-		glMatrixMode(GL_MODELVIEW);  //set modelview matrix
-		glLoadIdentity();  //reset modelview matrix
-
-		//arcball_rotate();
-
-		Scene3DRenderer& scene3d = m_Window->getScene3d();
-		if (scene3d.isShowGrdFlr())
-			drawGrdGrid();
-		if (scene3d.isShowCam())
-			drawCamCoord();
-		if (scene3d.isShowVolume())
-			drawVolume();
-
-		//drawVoxels();
-
-		if (scene3d.isShowOrg())
-			drawWCoord();
-
-		glFlush();
-	}
-
 	/**
 	 * - Update the scene with a new frame from the video
 	 * - Handle the keyboard input from the OpenCV window
 	 * - Update the OpenCV video window and frames slider position
 	 */
-	void Window::update(int v)
+	void Window::update()
 	{
-
-		Scene3DRenderer& scene3d = m_Window->getScene3d();
+		Scene3DRenderer& scene3d = WINDOW.getScene3d();
 		if (scene3d.isQuit())
 		{
 			// Quit signaled
@@ -381,17 +193,218 @@ namespace team45
 	}
 
 	/**
+	 * Render the 3D scene
+	 */
+	void Window::draw()
+	{
+		// Here's our rendering. Clears the screen
+		// to black, clear the color and depth
+		// buffers, and reset our modelview matrix.
+		glClearColor(245.f / 255.0f, 245.f / 255.0f, 220.f / 255.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
+		Scene3DRenderer& scene3d = WINDOW.getScene3d();
+		/*if (scene3d.isShowGrdFlr())
+			drawGrdGrid();
+		if (scene3d.isShowCam())
+			drawCamCoord();
+		if (scene3d.isShowVolume())
+			drawVolume();*/
+
+		m_voxel_shader->Begin();
+		// Set camera matrices
+		m_voxel_shader->SetMat4("u_Projection", m_scene_cam->GetProjMatrix());
+		m_voxel_shader->SetMat4("u_View", m_scene_cam->GetViewMatrix());
+
+		glm::mat4 model = glm::mat4(1.0f);
+		m_voxel_shader->SetMat4("u_Model", model);
+		drawVoxels();
+
+		m_cube->draw(*m_voxel_shader);
+
+		m_voxel_shader->End();
+		//drawVoxels();
+
+		/*if (scene3d.isShowOrg())
+			drawWCoord();*/
+	}
+
+	void Window::quit()
+	{
+		WINDOW.getScene3d().setQuit(true);
+		exit(EXIT_SUCCESS);
+	}
+
+	void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+	{
+		DEBUG("Key callback");
+		Scene3DRenderer& scene3d = WINDOW.getScene3d();
+		if (action == GLFW_RELEASE) return;
+		switch (key)
+		{
+		case GLFW_KEY_W:
+		{
+			WINDOW.getSceneCam().Move(Direction::Forward, WINDOW.m_deltaTime);
+		}
+		break;
+		case GLFW_KEY_A:
+		{
+			WINDOW.getSceneCam().Move(Direction::Left, WINDOW.m_deltaTime);
+
+		}
+		break;
+		case GLFW_KEY_S:
+		{
+			WINDOW.getSceneCam().Move(Direction::Backward, WINDOW.m_deltaTime);
+
+		}
+		break;
+		case GLFW_KEY_D:
+		{
+			WINDOW.getSceneCam().Move(Direction::Right, WINDOW.m_deltaTime);
+			
+		}
+		break;
+		case GLFW_KEY_LEFT_CONTROL:
+		{
+			WINDOW.getSceneCam().Move(Direction::Down, WINDOW.m_deltaTime);
+
+		}
+		break;
+		case GLFW_KEY_SPACE:
+		{
+			WINDOW.getSceneCam().Move(Direction::Up, WINDOW.m_deltaTime);
+
+		}
+		break;
+		case GLFW_KEY_Q:
+		{
+			scene3d.setQuit(true);
+		}
+		break;
+		case GLFW_KEY_P:
+		{
+			bool paused = scene3d.isPaused();
+			scene3d.setPaused(!paused);
+		}
+		break;
+		case GLFW_KEY_B:
+		{
+			scene3d.setCurrentFrame(scene3d.getCurrentFrame() - 1);
+
+		}
+		break;
+		case GLFW_KEY_N:
+		{
+			scene3d.setCurrentFrame(scene3d.getCurrentFrame() + 1);
+		}
+		break;
+		case GLFW_KEY_R:
+		{
+			bool rotate = scene3d.isRotate();
+			scene3d.setRotate(!rotate);
+			break;
+		}
+		break;
+		case GLFW_KEY_V:
+		{
+			bool volume = scene3d.isShowVolume();
+			scene3d.setShowVolume(!volume);
+		}
+		break;
+		case GLFW_KEY_G:
+		{
+			bool floor = scene3d.isShowGrdFlr();
+			scene3d.setShowGrdFlr(!floor);
+		}
+		break;
+		case GLFW_KEY_C:
+		{
+			bool cam = scene3d.isShowCam();
+			scene3d.setShowCam(!cam);
+		}
+		break;
+		case GLFW_KEY_O:
+		{
+			bool origin = scene3d.isShowOrg();
+			scene3d.setShowOrg(!origin);
+		}
+		break;
+		case GLFW_KEY_T:
+		{
+			reset();
+		}
+		break;
+		default:
+			break;
+		}
+
+		int num = key - GLFW_KEY_0;
+		if (num >= 0 && num <= (int)scene3d.getCameras().size())
+		{
+			scene3d.setCamera(num);
+			reset();
+		}
+	}
+
+	void Window::mouseCallback(GLFWwindow* window, int button, int action, int mods)
+	{
+
+	}
+
+	void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+	{
+
+	}
+
+	void Window::cursorCallback(GLFWwindow* window, double xpos, double ypos)
+	{
+		DEBUG("Cursor callback");
+		if (WINDOW.reset_cursor)
+		{
+			WINDOW.m_cursor_last_pos = cv::Point2f(xpos, ypos);
+			WINDOW.reset_cursor = false;
+		}
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+		{
+			DEBUG("current pos {} {}", xpos, ypos);
+			DEBUG("last pos {} {}", WINDOW.m_cursor_last_pos.x, WINDOW.m_cursor_last_pos.y);
+
+			WINDOW.getSceneCam().Cursor(xpos - WINDOW.m_cursor_last_pos.x, WINDOW.m_cursor_last_pos.y - ypos);
+			WINDOW.m_cursor_last_pos = cv::Point2f(xpos, ypos);
+		}
+	}
+
+	void Window::frameBufferCallback(GLFWwindow* window, int width, int height)
+	{
+		WINDOW.getScene3d().setSize(width, height);
+		WINDOW.getSceneCam().OnWindowResize(width, height);
+		glViewport(0, 0, width, height);
+		reset();
+	}
+
+	void Window::cursorEnterCallback(GLFWwindow* window, int entered)
+	{
+		WINDOW.reset_cursor = entered;
+	}
+
+	void Window::windowFocusCallback(GLFWwindow* window, int focused)
+	{
+		WINDOW.reset_cursor = focused;
+	}
+
+	/**
 	 * Draw the floor
 	 */
 	void Window::drawGrdGrid()
 	{
-		std::vector<std::vector<cv::Point3i*> > floor_grid = m_Window->getScene3d().getFloorGrid();
+		std::vector<std::vector<cv::Point3i*> > floor_grid = m_scene3d->getFloorGrid();
 
 		glLineWidth(1.0f);
 		glPushMatrix();
 		glBegin(GL_LINES);
 
-		int gSize = m_Window->getScene3d().getNum() * 2 + 1;
+		int gSize = m_scene3d->getNum() * 2 + 1;
 		for (int g = 0; g < gSize; g++)
 		{
 			// y lines
@@ -414,7 +427,7 @@ namespace team45
 	 */
 	void Window::drawCamCoord()
 	{
-		std::vector<Camera*> cameras = m_Window->getScene3d().getCameras();
+		std::vector<Camera*> cameras = m_scene3d->getCameras();
 
 		glLineWidth(1.0f);
 		glPushMatrix();
@@ -474,7 +487,7 @@ namespace team45
 	 */
 	void Window::drawVolume()
 	{
-		std::vector<cv::Point3f*> corners = m_Window->getScene3d().getReconstructor().getCorners();
+		std::vector<cv::Point3f*> corners = m_scene3d->getReconstructor().getCorners();
 
 		glLineWidth(1.0f);
 		glPushMatrix();
@@ -541,22 +554,22 @@ namespace team45
 	 */
 	void Window::drawVoxels()
 	{
-		glPushMatrix();
 
-		// apply default translation
-		glTranslatef(0, 0, 0);
-		glPointSize(2.0f);
-		glBegin(GL_POINTS);
-
-		std::vector<Reconstructor::Voxel*> voxels = m_Window->getScene3d().getReconstructor().getVisibleVoxels();
+		std::vector<Reconstructor::Voxel*> voxels = m_scene3d->getReconstructor().getVisibleVoxels();
+		std::vector<Vertex> vertices;
+		vertices.reserve(voxels.size());
 		for (size_t v = 0; v < voxels.size(); v++)
 		{
-			glColor4f(0.5f, 0.5f, 0.5f, 0.5f);
-			glVertex3f((GLfloat)voxels[v]->x, (GLfloat)voxels[v]->y, (GLfloat)voxels[v]->z);
+			Vertex vertex;
+			vertex.Position = glm::vec3(voxels[v]->x, voxels[v]->y, voxels[v]->z);
+			vertex.Color = glm::vec4(0.5, 0.5, 0.5, 1.0);
+			vertices.push_back(vertex);
 		}
-
-		glEnd();
-		glPopMatrix();
+		VertexBuffer vb;
+		vb.Create(vertices);
+		vb.Bind();
+		vb.Draw(GL_POINTS);
+		vb.Unbind();
 	}
 
 	/**
@@ -568,7 +581,7 @@ namespace team45
 		glPushMatrix();
 		glBegin(GL_LINES);
 
-		const Scene3DRenderer& scene3d = m_Window->getScene3d();
+		const Scene3DRenderer& scene3d = getScene3d();
 		const int len = scene3d.getSquareSideLen();
 		const float x_len = float(len * (scene3d.getBoardSize().height - 1));
 		const float y_len = float(len * (scene3d.getBoardSize().width - 1));

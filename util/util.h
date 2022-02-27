@@ -17,15 +17,14 @@ namespace util
 	const static std::string SCENE_WINDOW = "OpenGL 3D scene";
 
 	// Some OpenCV colors
-	const static cv::Scalar COLOR_BLUE = cv::Scalar(255, 0, 0);
-	const static cv::Scalar COLOR_GREEN = cv::Scalar(0, 200, 0);
-	const static cv::Scalar COLOR_RED = cv::Scalar(0, 0, 255);
-	const static cv::Scalar COLOR_YELLOW = cv::Scalar(0, 255, 255);
-	const static cv::Scalar COLOR_MAGENTA = cv::Scalar(255, 0, 255);
-	const static cv::Scalar COLOR_CYAN = cv::Scalar(255, 255, 0);
-	const static cv::Scalar COLOR_WHITE = cv::Scalar(255, 255, 255);
-	const static cv::Scalar COLOR_BLACK = cv::Scalar(0, 0, 0);
-
+	static const cv::Scalar COLOR_BLUE = cv::Scalar(255, 0, 0);
+	static const cv::Scalar COLOR_GREEN = cv::Scalar(0, 200, 0);
+	static const cv::Scalar COLOR_RED = cv::Scalar(0, 0, 255);
+	static const cv::Scalar COLOR_YELLOW = cv::Scalar(0, 255, 255);
+	static const cv::Scalar COLOR_MAGENTA = cv::Scalar(255, 0, 255);
+	static const cv::Scalar COLOR_CYAN = cv::Scalar(255, 255, 0);
+	static const cv::Scalar COLOR_WHITE = cv::Scalar(255, 255, 255);
+	static const cv::Scalar COLOR_BLACK = cv::Scalar(0, 0, 0);
 
 	static const std::string CB_CONFIG_FILE = "checkerboard.xml";
 	static const std::string INTRINSICS_FILE = "intrinsics.xml";
@@ -33,11 +32,13 @@ namespace util
 	static const std::string CHECKERBOARD_VIDEO = "checkerboard.avi";
 	static const std::string CHECKERBOARD_CORNERS = "boardcorners.xml";
 	static const std::string VIDEO_FILE = "video.avi";
-	static const std::string BACKGROUND_MODEL_FILE = "background.bgmodel";
 	static const std::string BACKGROUND_VIDEO_FILE = "background.avi";
 	static const std::string CAM_CONFIG_FILE = "config.xml";
 
 	static const int CALIB_MAX_NR_FRAMES = 40;
+	static const int CALIB_LOCAL_FRAMES = 3;
+
+	static const float SCENE_CAM_SPEED = .01f;
 
 	/**
 	 * Linux/Windows friendly way to check if a file exists
@@ -73,6 +74,23 @@ namespace util
 		return r;
 	}
 
+	// https://insanecoding.blogspot.com/2011/11/how-to-read-in-file-in-c.html
+	inline std::string get_file_contents(const char* filename)
+	{
+		std::ifstream in(filename, std::ios::in | std::ios::binary);
+		if (in)
+		{
+			std::string contents;
+			in.seekg(0, std::ios::end);
+			contents.resize(in.tellg());
+			in.seekg(0, std::ios::beg);
+			in.read(&contents[0], contents.size());
+			in.close();
+			return(contents);
+		}
+		throw(errno);
+	}
+
 	template <typename T>
 	static void write_obj(T& obj, std::string filename)
 	{
@@ -95,4 +113,4 @@ namespace util
 
 } /* namespace team45 */
 
-#endif /* Util_H_ */
+#endif /* Util_H */

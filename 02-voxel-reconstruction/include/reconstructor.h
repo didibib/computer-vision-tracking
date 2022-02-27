@@ -1,5 +1,5 @@
-#ifndef RECONSTRUCTOR_H_
-#define RECONSTRUCTOR_H_
+#ifndef RECONSTRUCTOR_H
+#define RECONSTRUCTOR_H
 
 #include <opencv2/core/core.hpp>
 #include <stddef.h>
@@ -19,10 +19,9 @@ public:
 	 */
 	struct Voxel
 	{
-		int x, y, z;                               // Coordinates
+		int x, y, z, visibleIndex;                 // Coordinates and index in m_visible_voxels (-1 if none)
 		cv::Scalar color;                          // Color
-		std::vector<cv::Point> camera_projection;  // Projection location for camera[c]'s FoV (2D)
-		std::vector<int> valid_camera_projection;  // Flag if camera projection is in camera[c]'s FoV
+		int camera_flags;						   // Flag if voxel was on in camera[c] in the previous frame
 	};
 
 private:
@@ -37,6 +36,9 @@ private:
 
 	std::vector<Voxel*> m_voxels;           // Pointer vector to all voxels in the half-space
 	std::vector<Voxel*> m_visible_voxels;   // Pointer vector to all visible voxels
+
+	// Lookup table per camera, where a pixel (y*width + x) maps to all of the voxels that are projected onto it   
+	std::vector<std::map<int, std::vector<Voxel*>>> m_lookup; 
 
 	void initialize();
 

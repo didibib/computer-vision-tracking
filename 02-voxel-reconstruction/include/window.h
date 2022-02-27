@@ -2,50 +2,71 @@
 
 namespace team45
 {
+	class SceneCamera;
 	class Scene3DRenderer;
+	class Cube;
+	class Shader;
 
+	// https://stackoverflow.com/questions/1008019/c-singleton-design-pattern
 	class Window
 	{
-		Scene3DRenderer& m_scene3d;
+		Window() {};
 
-		static Window* m_Window;
+		float m_deltaTime = 0;
+		float m_currentTime = 0, m_previousTime = 0;
+
+		SceneCamera* m_scene_cam;
+		Scene3DRenderer* m_scene3d;
 		GLFWwindow* m_glfwWindow = nullptr;
-		
-		static void drawGrdGrid();
-		static void drawCamCoord();
-		static void drawVolume();
-		//static void drawArcball(); was not supported on win
-		static void drawVoxels();
-		static void drawWCoord();
-		//static void drawInfo(); was not supported on win
+		Shader* m_voxel_shader;
+		Cube* m_cube;
+
+		bool reset_cursor;
+		cv::Point2f m_cursor_last_pos;
+
+		void drawGrdGrid();
+		void drawCamCoord();
+		void drawVolume();
+		void drawVoxels();
+		void drawWCoord();
+
+		static void reset();
+		void update();
+		void draw();
+		void quit();
 
 		static inline void perspectiveGL(GLdouble, GLdouble, GLdouble, GLdouble);
 
 	public:
-		Window(Scene3DRenderer&);
-		virtual ~Window();
+		static Window& GetInstance()
+		{
+			static Window instance;
+			return instance;
 
-#ifdef _WIN32
-		bool init(const char*);
+		}
+		~Window();
+		Window(Window const&) = delete;
+		void operator=(Window const&) = delete;
+
+		bool init(const char*, Scene3DRenderer&);
 		void run();
-#endif
 
 		static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 		static void mouseCallback(GLFWwindow* window, int button, int action, int mods);
 		static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 		static void cursorCallback(GLFWwindow* window, double xpos, double ypos);
-		static void motion(int, int);
-		static void reshape(int, int);
-		static void reset();
-		static void draw();
-		static void update(int);
-		static void quit();
+		static void frameBufferCallback(GLFWwindow* window, int width, int height);
+		static void cursorEnterCallback(GLFWwindow* window, int entered);
+		static void windowFocusCallback(GLFWwindow* window, int focused);
 
 		Scene3DRenderer& getScene3d() const
 		{
-			return m_scene3d;
+			return *m_scene3d;
+		}
+
+		SceneCamera& getSceneCam() const
+		{
+			return *m_scene_cam;
 		}
 	};
-
 } /* namespace team45 */
-

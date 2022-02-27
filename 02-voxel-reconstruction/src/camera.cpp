@@ -654,8 +654,7 @@ namespace team45
 
 	void Camera::createForegroundImage()
 	{
-		cv::Mat tmp;
-		cv::Mat tmpMask;
+		cv::Mat tmp, tmpMask, foreground_mask;
 		m_bg_model->apply(getFrame(), tmpMask, 0);
 		cv::threshold(tmpMask, tmpMask, 200, 255, cv::THRESH_BINARY);
 
@@ -663,7 +662,18 @@ namespace team45
 		cv::Mat kernel = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3,3));
 
 		cv::erode(tmpMask, tmp, kernel);
-		cv::dilate(tmp, m_foreground_image, kernel);
+		cv::dilate(tmp, foreground_mask, kernel);
+
+		// Determine binary difference between current frames binary mask and previous frame binary mask
+		if (m_foreground_image.rows != 0)
+		{
+			cv::bitwise_xor(foreground_mask, m_foreground_image, m_binary_diff);
+		}
+		else
+		{
+			m_binary_diff = foreground_mask;
+		}
+		m_foreground_image = foreground_mask;
 	}
 
 } /* namespace team45 */
