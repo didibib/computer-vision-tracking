@@ -234,9 +234,10 @@ namespace team45
 		}
 
 		int num = key - GLFW_KEY_1;
+		// Check if key is 1 .. 4
 		if (num >= 1 && num <= (int)scene3d.getCameras().size())
 		{
-			scene3d.toggleCamera(num - 1);
+			scene3d.toggleCamera(--num);
 		}
 		
 	}

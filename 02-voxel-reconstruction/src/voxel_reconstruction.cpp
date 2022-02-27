@@ -81,6 +81,15 @@ namespace team45
 		cout << "Initializing " << m_voxels_amount << " voxels ";
 		m_voxels.resize(m_voxels_amount);
 
+		// Initialize lookup table
+		// Could be with done with resize?
+		m_lookup.resize(m_cameras.size());
+		/*for (int i = 0; i < m_cameras.size(); i++)
+		{
+			std::map<int, std::vector<Voxel*>> map;
+			m_lookup.push_back(map);
+		}*/
+
 		int z;
 		int pdone = 0;
 		std::vector<int> camCount{ 0,0,0,0 };
@@ -108,11 +117,11 @@ namespace team45
 
 					// Create all voxels
 					Voxel* voxel = new Voxel;
+					voxel->visibleIndex = -1;
 					voxel->x = x;
 					voxel->y = y;
 					voxel->z = z;
-					voxel->camera_projection = vector<Point>(m_cameras.size());
-					voxel->valid_camera_projection = vector<int>(m_cameras.size(), 0);
+					voxel->camera_flags = 0;
 
 					const int p = zp * plane + yp * plane_x + xp;  // The voxel's index
 
@@ -120,19 +129,20 @@ namespace team45
 					{
 						Point point = m_cameras[c]->projectOnView(Point3f((float)x, (float)y, (float)z));
 
-						// Save the pixel coordinates 'point' of the voxel projection on camera 'c'
-						voxel->camera_projection[(int)c] = point;
-
-						// If it's within the camera's FoV, flag the projection
-						if (point.x >= 0 && point.x < m_plane_size.width && point.y >= 0 && point.y < m_plane_size.height)
+						// Calculate pixel index in the lookup table  
+						int absPos = point.y * m_cameras[c]->getSize().width + point.x;
+						auto iterator = m_lookup[c].find(absPos);
+						if (iterator != m_lookup[c].end())
 						{
-							voxel->valid_camera_projection[(int)c] = 1;
-#pragma omp critical
-							camCount[c]++;
+							// Pair exists, so add it
+							iterator->second.push_back(voxel);
 						}
-
+						else
+						{
+							// Pair didn't exist yet, so we insert a vector containing the current voxel at this pixel's location
+							m_lookup[c].insert({ absPos, { voxel } });
+						}
 					}
-
 					//Writing voxel 'p' is not critical as it's unique (thread safe)
 					m_voxels[p] = voxel;
 				}
@@ -149,44 +159,81 @@ namespace team45
 	 */
 	void VoxelReconstruction::update()
 	{
-		m_visible_voxels.clear();
-		std::vector<Voxel*> visible_voxels;
-
-		int v;
-		vector<int> visibleCamSum{ 0,0,0,0 };
-#pragma omp parallel for schedule(static) private(v) shared(visible_voxels,visibleCamSum)
-		for (v = 0; v < (int)m_voxels_amount; ++v)
+		// Prepare our flag that determines if a voxel is on in all cameras
+		// 00.....01111
+		int flag = 0;
+		for (int c = 0; c < m_cameras.size(); c++)
 		{
-			int camera_counter = 0;
-			int camera_on = 0;
-			Voxel* voxel = m_voxels[v];
+			//if(m_toggle_camera[c])
+				flag |= (1 << c);
+		}
 
-			for (size_t c = 0; c < m_cameras.size(); c++)
+		for (int c = 0; c < m_cameras.size(); c++)
+		{
+			/*if (!m_toggle_camera[c])
+				continue;*/
+
+			cv::Size camSize = m_cameras[c]->getSize();
+			int nrOfPixels = camSize.width * camSize.height;
+
+			int p;
+#pragma omp parallel for schedule(static) private(p) shared(m_visible_voxels)
+			for (p = 0; p < nrOfPixels; ++p)
 			{
-				int cam = c;
-				if (!m_toggle_camera[cam]) continue;
+				int py = p / camSize.width;
+				int px = p % camSize.width;
+				Point point = cv::Point2f(px, py);
 
-				camera_on++;
-				if (voxel->valid_camera_projection[cam])
+				// chance foregroundimage to binary diff
+				if (m_cameras[c]->getBinaryDifference().at<uchar>(point) < 255)
+					continue;
+
+				// Now we know that this pixel was on in the binary difference
+				auto iterator = m_lookup[c].find(p);
+				if (iterator != m_lookup[c].end())
 				{
-					const Point point = voxel->camera_projection[cam];
-
-					//If there's a white pixel on the foreground image at the projection point, add the camera
-					if (m_cameras[cam]->getForegroundImage().at<uchar>(point) == 255)
+					// Voxels mapped to this pixel, so evaluate them
+					for (int v = 0; v < iterator->second.size(); v++)
 					{
-						camera_counter++;
+						Voxel* voxel = iterator->second[v];
+						int voxelFlag = m_cameras[c]->getForegroundImage().at<uchar>(point) == 255;
+						// Check if the voxel is currently on
+						bool voxelOnPrev = voxel->camera_flags == flag;
+
+						// Set flag c to voxelOnPrev's value
+						// First use a mask to turn off flag c
+						voxel->camera_flags &= ~(1 << c);
+						// Then make flag c equal to voxelFlag's value
+						voxel->camera_flags |= voxelFlag << c;
+
+						bool voxelOnNow = voxel->camera_flags == flag;
+
+#pragma omp critical // The following operations are critical, since visible_voxels is shared by the threads
+						{
+							if (voxelOnPrev && !voxelOnNow)
+							{
+								// Remove the voxel from visible_voxels
+								m_visible_voxels[voxel->visibleIndex] = m_visible_voxels[m_visible_voxels.size() - 1];
+								m_visible_voxels[voxel->visibleIndex]->visibleIndex = voxel->visibleIndex;
+								voxel->visibleIndex = -1;
+								m_visible_voxels.resize(m_visible_voxels.size() - 1);
+							}
+							else if (!voxelOnPrev && voxelOnNow)
+							{
+								// Add the voxel to visible_voxels
+								m_visible_voxels.push_back(voxel);
+								voxel->visibleIndex = m_visible_voxels.size() - 1;
+							}
+						}
 					}
 				}
-			}
-
-			// If the voxel is present on all on cameras
-			if (camera_counter == camera_on)
-			{
-#pragma omp critical //push_back is critical
-				visible_voxels.push_back(voxel);
+				else
+				{
+					// This pixel does not have voxels mapped to it
+					continue;
+				}
 			}
 		}
-		m_visible_voxels.insert(m_visible_voxels.end(), visible_voxels.begin(), visible_voxels.end());
 	}
 
 } /* namespace team45 */
