@@ -59,14 +59,12 @@ public:
 		return m_voxels;
 	}
 
-	void setVisibleVoxels(
-			const std::vector<Voxel*>& visibleVoxels)
+	void setVisibleVoxels(const std::vector<Voxel*>& visibleVoxels)
 	{
 		m_visible_voxels = visibleVoxels;
 	}
 
-	void setVoxels(
-			const std::vector<Voxel*>& voxels)
+	void setVoxels(const std::vector<Voxel*>& voxels)
 	{
 		m_voxels = voxels;
 	}

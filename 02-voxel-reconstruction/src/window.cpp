@@ -8,7 +8,7 @@
 #include "shader.h"
 #include "vertex_buffer.h"
 #include "scene_camera.h"
-#include "voxel.h"
+#include "cube.h"
 
 namespace team45
 {
@@ -94,27 +94,6 @@ namespace team45
 			glfwSwapBuffers(m_glfwWindow);
 			glfwPollEvents();
 		}
-	}
-
-	/**
-	 * http://nehe.gamedev.net/article/replacement_for_gluperspective/21002/
-	 * replacement for gluPerspective();
-	 */
-	void Window::perspectiveGL(GLdouble fovY, GLdouble aspect, GLdouble zNear, GLdouble zFar)
-	{
-		GLdouble fW, fH;
-		fH = tan(fovY / 360 * CV_PI) * zNear;
-		fW = fH * aspect;
-		glFrustum(-fW, fW, -fH, fH, zNear, zFar);
-	}
-
-	void Window::reset()
-	{
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		perspectiveGL(50, WINDOW.getScene3d().getAspectRatio(), 1, 40000);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
 	}
 	/**
 	 * - Update the scene with a new frame from the video
@@ -237,43 +216,42 @@ namespace team45
 
 	void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
-		DEBUG("Key callback");
 		Scene3DRenderer& scene3d = WINDOW.getScene3d();
 		if (action == GLFW_RELEASE) return;
 		switch (key)
 		{
 		case GLFW_KEY_W:
 		{
-			WINDOW.getSceneCam().Move(Direction::Forward, WINDOW.m_deltaTime);
+			WINDOW.m_scene_cam->Move(Direction::Forward, WINDOW.m_deltaTime);
 		}
 		break;
 		case GLFW_KEY_A:
 		{
-			WINDOW.getSceneCam().Move(Direction::Left, WINDOW.m_deltaTime);
+			WINDOW.m_scene_cam->Move(Direction::Left, WINDOW.m_deltaTime);
 
 		}
 		break;
 		case GLFW_KEY_S:
 		{
-			WINDOW.getSceneCam().Move(Direction::Backward, WINDOW.m_deltaTime);
+			WINDOW.m_scene_cam->Move(Direction::Backward, WINDOW.m_deltaTime);
 
 		}
 		break;
 		case GLFW_KEY_D:
 		{
-			WINDOW.getSceneCam().Move(Direction::Right, WINDOW.m_deltaTime);
+			WINDOW.m_scene_cam->Move(Direction::Right, WINDOW.m_deltaTime);
 			
 		}
 		break;
 		case GLFW_KEY_LEFT_CONTROL:
 		{
-			WINDOW.getSceneCam().Move(Direction::Down, WINDOW.m_deltaTime);
+			WINDOW.m_scene_cam->Move(Direction::Down, WINDOW.m_deltaTime);
 
 		}
 		break;
 		case GLFW_KEY_SPACE:
 		{
-			WINDOW.getSceneCam().Move(Direction::Up, WINDOW.m_deltaTime);
+			WINDOW.m_scene_cam->Move(Direction::Up, WINDOW.m_deltaTime);
 
 		}
 		break;
@@ -330,11 +308,6 @@ namespace team45
 			scene3d.setShowOrg(!origin);
 		}
 		break;
-		case GLFW_KEY_T:
-		{
-			reset();
-		}
-		break;
 		default:
 			break;
 		}
@@ -343,7 +316,6 @@ namespace team45
 		if (num >= 0 && num <= (int)scene3d.getCameras().size())
 		{
 			scene3d.setCamera(num);
-			reset();
 		}
 	}
 
@@ -359,7 +331,6 @@ namespace team45
 
 	void Window::cursorCallback(GLFWwindow* window, double xpos, double ypos)
 	{
-		DEBUG("Cursor callback");
 		if (WINDOW.reset_cursor)
 		{
 			WINDOW.m_cursor_last_pos = cv::Point2f(xpos, ypos);
@@ -367,20 +338,16 @@ namespace team45
 		}
 		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
 		{
-			DEBUG("current pos {} {}", xpos, ypos);
-			DEBUG("last pos {} {}", WINDOW.m_cursor_last_pos.x, WINDOW.m_cursor_last_pos.y);
-
-			WINDOW.getSceneCam().Cursor(xpos - WINDOW.m_cursor_last_pos.x, WINDOW.m_cursor_last_pos.y - ypos);
-			WINDOW.m_cursor_last_pos = cv::Point2f(xpos, ypos);
+			WINDOW.m_scene_cam->Cursor(xpos - WINDOW.m_cursor_last_pos.x, WINDOW.m_cursor_last_pos.y - ypos);			
 		}
+		WINDOW.m_cursor_last_pos = cv::Point2f(xpos, ypos);
 	}
 
 	void Window::frameBufferCallback(GLFWwindow* window, int width, int height)
 	{
-		WINDOW.getScene3d().setSize(width, height);
-		WINDOW.getSceneCam().OnWindowResize(width, height);
+		WINDOW.m_scene3d->setSize(width, height);
+		WINDOW.m_scene_cam->OnWindowResize(width, height);
 		glViewport(0, 0, width, height);
-		reset();
 	}
 
 	void Window::cursorEnterCallback(GLFWwindow* window, int entered)

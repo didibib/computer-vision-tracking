@@ -30,12 +30,9 @@ namespace team45
 		void drawVoxels();
 		void drawWCoord();
 
-		static void reset();
 		void update();
 		void draw();
 		void quit();
-
-		static inline void perspectiveGL(GLdouble, GLdouble, GLdouble, GLdouble);
 
 	public:
 		static Window& GetInstance()

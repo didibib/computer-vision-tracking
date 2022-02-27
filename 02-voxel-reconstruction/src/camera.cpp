@@ -631,14 +631,17 @@ namespace team45
 	 * Projects points from the scene space to the image coordinates
 	 */
 	cv::Point Camera::projectOnView(
-		const cv::Point3f& coords, const cv::Mat& rotation_values, const cv::Mat& translation_values, const cv::Mat& camera_matrix,
+		const cv::Point3f& coords, 
+		const cv::Mat& rotation_values, 
+		const cv::Mat& translation_values, 
+		const cv::Mat& camera_matrix,
 		const cv::Mat& distortion_coeffs)
 	{
 		vector<Point3f> object_points;
 		object_points.push_back(coords);
 
 		vector<Point2f> image_points;
-		projectPoints(object_points, rotation_values, translation_values, camera_matrix, distortion_coeffs, image_points);
+		cv::projectPoints(object_points, rotation_values, translation_values, camera_matrix, distortion_coeffs, image_points);
 
 		return image_points.front();
 	}
@@ -646,8 +649,7 @@ namespace team45
 	/**
 	 * Non-static for backwards compatibility
 	 */
-	Point Camera::projectOnView(
-		const Point3f& coords)
+	Point Camera::projectOnView(const Point3f& coords)
 	{
 		return projectOnView(coords, m_rotation_values, m_translation_values, m_camera_matrix, m_distortion_coeffs);
 	}

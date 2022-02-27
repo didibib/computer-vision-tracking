@@ -55,8 +55,8 @@ set(VOXEL_RECONSTRUCTION
 )
 
 set(VOXEL
-	"include/voxel.h"
-	"src/voxel.cpp"
+	"include/cube.h"
+	"src/cube.cpp"
 )
 
 set(GLAD 

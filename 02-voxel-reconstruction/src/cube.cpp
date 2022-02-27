@@ -1,6 +1,6 @@
 #include "cvpch.h"
 #include "vertex_buffer.h"
-#include "voxel.h"
+#include "cube.h"
 #include "shader.h"
 
 namespace team45
