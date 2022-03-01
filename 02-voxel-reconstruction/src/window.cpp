@@ -9,6 +9,7 @@
 #include "vertex_buffer.h"
 #include "scene_camera.h"
 #include "cube.h"
+#include "voxel_buffer.h"
 
 namespace team45
 {
@@ -17,9 +18,17 @@ namespace team45
 	Window::~Window()
 	{
 		delete m_scene3d;
+		delete m_scene_cam;
+
+		delete m_basic_shader;
 		delete m_voxel_shader;
-		delete m_cam_coord;
-		delete m_floor_grid;
+
+		delete m_voxel_shader;
+		delete m_cam_coord_vb;
+		delete m_floor_grid_vb;
+		delete m_volume_vb;
+		delete m_cube_vb;
+
 		glfwDestroyWindow(m_glfwWindow);
 		glfwTerminate();
 	}
@@ -32,7 +41,6 @@ namespace team45
 		m_scene3d = &s3d;
 		int width = m_scene3d->getWidth();
 		int height = m_scene3d->getHeight();
-		int bits = 32;
 
 		glfwInit();
 		// Window hints need to be set before the creation of the window. They function as additional arguments to glfwCreateWindow.
@@ -68,32 +76,38 @@ namespace team45
 
 		// Clear color
 		m_clear_color = glm::vec4(245.f / 255.0f, 245.f / 255.0f, 220.f / 255.0f, 1.0f);
-		
+
 		// Load Shaders
 		m_basic_shader = new Shader();
 		m_basic_shader->Load(util::SHADER_DIR_STR + "basic");
 
 		m_voxel_shader = new Shader();
 		m_voxel_shader->Load(util::SHADER_DIR_STR + "voxel");
-		
+
 		// Create scene camera
 		m_scene_cam = new SceneCamera(60.f, width, height, 0.1f, 10000.f);
 		int size = m_scene3d->getReconstructor().getSize();
 		m_scene_cam->SetPos(size, 0, size);
 
 		// Create voxel
-		m_cube = new VertexBuffer();
-		m_cube->Create(Cube::GetVertices());
+		m_cube_vb = new VertexBuffer();
+		m_cube_vb->SetName("Cube");
+		m_cube_vb->Create(Cube::GetVertices());
 
 		// Create floor grid
 		auto verts = m_scene3d->createFloorGrid();
-		m_floor_grid = new VertexBuffer();
-		m_floor_grid->Create(verts);
+		m_floor_grid_vb = new VertexBuffer();
+		m_floor_grid_vb->SetName("Floor grid");
+		m_floor_grid_vb->Create(verts);
 
 		// Create coords to visualize
 		createCamCoord();
 		createWCoord();
 		createVolume();
+
+		// Create voxel buffer to draw instanced voxels
+		m_voxel_buffer = new VoxelBuffer();
+		m_voxel_buffer->Create(s3d.getReconstructor().getVoxels().size());
 
 		return true;
 	}
@@ -197,7 +211,6 @@ namespace team45
 		m_basic_shader->SetMat4("u_Projection", m_scene_cam->GetProjMatrix());
 		m_basic_shader->SetMat4("u_View", m_scene_cam->GetViewMatrix());
 
-		// All vertex buffers after this use this model, if u_Model in shader is not set again
 		glm::mat4 model = glm::mat4(1.0f);
 		// Rotate scene
 		float angle_radians = -(float)glm::radians(glfwGetTime()) * 2;
@@ -206,29 +219,22 @@ namespace team45
 		m_basic_shader->SetMat4("u_Model", model);
 
 		// Visualize scene
-		drawWireframe(m_w_coord);
-		drawWireframe(m_floor_grid);
-		drawWireframe(m_cam_coord);
-		drawWireframe(m_volume);
+		drawWireframe(m_w_coord_vb);
+		drawWireframe(m_floor_grid_vb);
+		drawWireframe(m_cam_coord_vb);
+		drawWireframe(m_volume_vb);
 
 		m_basic_shader->End();
 
-		m_voxel_shader->Begin();
-		// Set camera matrices
-		m_voxel_shader->SetMat4("u_Projection", m_scene_cam->GetProjMatrix());
-		m_voxel_shader->SetMat4("u_View", m_scene_cam->GetViewMatrix());
 		// Draw voxels
 		drawVoxels();
-
-		m_voxel_shader->End();
-
 	}
 
 	void Window::drawWireframe(VertexBuffer* vb)
 	{
 		if (vb == nullptr)
 		{
-			ERROR("Vertexbuffer is not instantiated");
+			ERROR("Vertexbuffer is not instantiated {}", vb->GetName());
 			return;
 		}
 		vb->Bind();
@@ -241,8 +247,21 @@ namespace team45
 	 */
 	void Window::drawVoxels()
 	{
-		std::vector<VoxelReconstruction::Voxel*> voxels = m_scene3d->getReconstructor().getVisibleVoxels();
+		m_voxel_shader->Begin();
+		// Set camera matrices
+		m_voxel_shader->SetMat4("u_Projection", m_scene_cam->GetProjMatrix());
+		m_voxel_shader->SetMat4("u_View", m_scene_cam->GetViewMatrix());
+		// Draw voxels
+		std::vector<Voxel*> voxels = m_scene3d->getReconstructor().getVisibleVoxels();
 		int size = WINDOW.m_scene3d->getReconstructor().getStep();
+
+		//glm::vec3 scale = glm::vec3(size);
+		//glm::mat4 model = glm::mat4(1.0f);
+		//model = glm::scale(model, scale);
+		//m_voxel_shader->SetMat4("u_Model", model);
+
+		//m_voxel_buffer->Draw(voxels);
+
 		for (size_t v = 0; v < voxels.size(); v++)
 		{
 			// Cast the position to floats
@@ -256,11 +275,12 @@ namespace team45
 			glm::vec4 color = glm::vec4(voxels[v]->color, 1);
 
 			m_voxel_shader->SetMat4("u_Model", model);
-			m_voxel_shader->SetVec4("u_Color", color);
 
-			m_cube->Bind();
-			m_cube->Draw();
+			m_cube_vb->Bind();
+			m_cube_vb->Draw();
 		}
+
+		m_voxel_shader->End();
 	}
 
 #pragma region __CALLBACKS
@@ -335,7 +355,7 @@ namespace team45
 
 #pragma endregion
 
-	
+
 	/**
 	 * Draw the cameras
 	 */
@@ -398,9 +418,10 @@ namespace team45
 			vertices.push_back(v1);
 		}
 
-		delete m_cam_coord;
-		m_cam_coord = new VertexBuffer();
-		m_cam_coord->Create(vertices);
+		delete m_cam_coord_vb;
+		m_cam_coord_vb = new VertexBuffer();
+		m_cam_coord_vb->SetName("Camera Coord");
+		m_cam_coord_vb->Create(vertices);
 	}
 
 	/**
@@ -475,9 +496,10 @@ namespace team45
 		vertices.push_back(v3);
 		vertices.push_back(v7);
 
-		delete m_volume;
-		m_volume = new VertexBuffer();
-		m_volume->Create(vertices);
+		delete m_volume_vb;
+		m_volume_vb = new VertexBuffer();
+		m_volume_vb->SetName("Volume");
+		m_volume_vb->Create(vertices);
 	}
 
 	/**
@@ -523,9 +545,10 @@ namespace team45
 		vertices.push_back(v0);
 		vertices.push_back(vz);
 
-		delete m_w_coord;
-		m_w_coord = new VertexBuffer();
-		m_w_coord->Create(vertices);
+		delete m_w_coord_vb;
+		m_w_coord_vb = new VertexBuffer();
+		m_w_coord_vb->SetName("W Coord");
+		m_w_coord_vb->Create(vertices);
 	}
 
 } /* namespace team45 */

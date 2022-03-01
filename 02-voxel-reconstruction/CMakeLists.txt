@@ -54,6 +54,11 @@ set(CUBE
 	"src/cube.cpp"
 )
 
+set(VOXEL_BUFFER
+	"include/voxel_buffer.h"
+	"src/voxel_buffer.cpp"
+)
+
 set(GLAD 
 	"include/glad/glad.h"
 	"src/glad.c"
@@ -70,6 +75,7 @@ add_executable (${TARGET}
 	${PCH}
 	${CUBE}
 	${SCENE_CAMERA}
+	${VOXEL_BUFFER}
 )
 
 source_group(\\ FILES ${ROOT_FILES})
@@ -77,8 +83,8 @@ source_group(pch FILES ${PCH})
 source_group(util FILES ${UTIL})
 source_group(glad FILES ${GLAD})
 source_group(window FILES ${WINDOW})
-source_group(voxel FILES ${VOXEL_RECONSTRUCTION} )
-source_group(scene FILES ${SCENE_RENDERER} ${SCENE_CAMERA} ${VOXEL_CAMERA} ${CUBE})
+source_group(voxel FILES ${VOXEL_RECONSTRUCTION} ${VOXEL_CAMERA} ${VOXEL_BUFFER})
+source_group(scene FILES ${SCENE_RENDERER} ${SCENE_CAMERA} ${CUBE})
 
 # Set output directories (function found in: cmake/)
 set_target_output_directories(${TARGET})

@@ -5,24 +5,9 @@
 namespace team45
 {
 	class VoxelCamera;
+
 	class VoxelReconstruction
 	{
-	public:
-		/*
-		 * Voxel structure
-		 * Represents a 3D pixel in the half space
-		 */
-		struct Voxel
-		{
-			glm::ivec3 position;
-			glm::vec3 color;    
-			std::vector<float> distances;				// Distance from this voxel to each camera 
-			std::vector<cv::Point> pixelProjections;	// Pixel that this voxel projects to on each camera ((-1,-1) if it doesn't project onto the camera)
-			int visibleIndex;							// Coordinates and index in m_visible_voxels (-1 if none)
-			int camera_flags;							// Bitwise Flag if voxel was on in camera[c] in the previous frame
-		};
-
-	private:
 		const std::vector<VoxelCamera*>& m_cameras;		// vector of pointers to cameras
 		const int m_height;								// Cube half-space height from floor to ceiling
 		const int m_step;								// Step size (space between voxels)
@@ -43,13 +28,13 @@ namespace team45
 		int m_all_camera_flags;
 
 		void initialize();
+		void colorVoxels();
 
 	public:
 		VoxelReconstruction(const std::vector<VoxelCamera*>&, int height = 2048, int step = 128);
 		virtual ~VoxelReconstruction();
 
 		void update();
-		void colorVoxels();
 
 		const std::vector<Voxel*>& getVisibleVoxels() const
 		{
@@ -59,16 +44,6 @@ namespace team45
 		const std::vector<Voxel*>& getVoxels() const
 		{
 			return m_voxels;
-		}
-
-		void setVisibleVoxels(const std::vector<Voxel*>& visibleVoxels)
-		{
-			m_visible_voxels = visibleVoxels;
-		}
-
-		void setVoxels(const std::vector<Voxel*>& voxels)
-		{
-			m_voxels = voxels;
 		}
 
 		void toggleCamera(const int& cam_id)

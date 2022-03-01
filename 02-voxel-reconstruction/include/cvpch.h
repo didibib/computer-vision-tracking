@@ -50,3 +50,32 @@
 
 // Own headers
 #include "logger.h"
+
+namespace team45
+{
+	/*
+	 * Voxel structure
+	 * Represents a 3D pixel in the half space
+	 */
+	struct Voxel
+	{
+		glm::ivec3 position;
+		glm::vec3 color;
+		std::vector<float> distances;				// Distance from this voxel to each camera 
+		std::vector<cv::Point> pixelProjections;	// Pixel that this voxel projects to on each camera ((-1,-1) if it doesn't project onto the camera)
+		int visibleIndex;							// Coordinates and index in m_visible_voxels (-1 if none)
+		int camera_flags;							// Bitwise Flag if voxel was on in camera[c] in the previous frame
+	};
+
+	/*
+	 * Vertex structure
+	 * Represents a 3D vertex
+	 */
+	struct Vertex
+	{
+		glm::vec3 Position;		// 3 * float = 12 bytes
+		glm::vec4 Color;		// 4 * float = 16 bytes
+		glm::vec2 UV;			// 2 * float = 8  bytes
+		glm::vec3 Normal;		// 3 * float = 12 bytes
+	};
+}

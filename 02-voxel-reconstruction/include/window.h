@@ -7,6 +7,7 @@ namespace team45
 	class Cube;
 	class Shader;
 	class VertexBuffer;
+	class VoxelBuffer;
 
 	// https://stackoverflow.com/questions/1008019/c-singleton-design-pattern
 	class Window
@@ -25,11 +26,13 @@ namespace team45
 		Shader* m_basic_shader;
 		Shader* m_voxel_shader;
 		
-		VertexBuffer* m_cube;
-		VertexBuffer* m_floor_grid;
-		VertexBuffer* m_cam_coord;
-		VertexBuffer* m_w_coord;
-		VertexBuffer* m_volume;
+		VertexBuffer* m_cube_vb;
+		VertexBuffer* m_floor_grid_vb;
+		VertexBuffer* m_cam_coord_vb;
+		VertexBuffer* m_w_coord_vb;
+		VertexBuffer* m_volume_vb;
+
+		VoxelBuffer* m_voxel_buffer;
 
 		bool reset_cursor;
 		cv::Point2f m_cursor_last_pos;

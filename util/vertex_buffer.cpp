@@ -1,12 +1,18 @@
 #include "cvpch.h"
+#include "util.h"
 #include "vertex_buffer.h"
 
 namespace team45
 {
 	VertexBuffer::VertexBuffer() :
 		m_IsBind(false), m_nVertices(0), m_nIndices(0),
-		m_VAO(0), m_VBO(0), m_EBO(0)
+		m_VAO(0), m_VBO(0), m_EBO(0), m_Name("")
 	{
+	}
+
+	VertexBuffer::~VertexBuffer()
+	{
+		glDeleteVertexArrays(1, &m_VAO);
 	}
 
 	void VertexBuffer::Create(const std::vector<Vertex>& vertices)
