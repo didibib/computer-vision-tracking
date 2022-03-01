@@ -12,11 +12,8 @@ namespace team45
 	 * Constructor
 	 * Voxel reconstruction class
 	 */
-	VoxelReconstruction::VoxelReconstruction(
-		const vector<VoxelCamera*>& cs) :
-		m_cameras(cs),
-		m_height(2048),
-		m_step(64)
+	VoxelReconstruction::VoxelReconstruction(const vector<VoxelCamera*>& cs, int height, int step) :
+		m_cameras(cs), m_height(height), m_step(step)
 	{
 		for (size_t c = 0; c < m_cameras.size(); ++c)
 		{
@@ -82,13 +79,20 @@ namespace team45
 		m_voxels.resize(m_voxels_amount);
 
 		// Initialize lookup table
-		// Could be with done with resize?
 		m_lookup.resize(m_cameras.size());
-		/*for (int i = 0; i < m_cameras.size(); i++)
+
+		// Prepare our flag that determines if a voxel is on in all cameras
+		// 00.....01111
+		m_all_camera_flags = 0;
+		for (int c = 0; c < m_cameras.size(); c++)
+			m_all_camera_flags |= (1 << c);
+
+		std::vector<Point3f> cameraPositions;
+		for (int c = 0; c < m_cameras.size(); c++)
 		{
-			std::map<int, std::vector<Voxel*>> map;
-			m_lookup.push_back(map);
-		}*/
+			auto pos = m_cameras[c]->getCameraLocation();
+			cameraPositions.push_back(pos);
+		}
 
 		int z;
 		int pdone = 0;
@@ -118,29 +122,51 @@ namespace team45
 					// Create all voxels
 					Voxel* voxel = new Voxel;
 					voxel->visibleIndex = -1;
-					voxel->x = x;
-					voxel->y = y;
-					voxel->z = z;
+					voxel->position = glm::ivec3(x, y, z);
 					voxel->camera_flags = 0;
+					voxel->color = glm::vec3(0);
 
 					const int p = zp * plane + yp * plane_x + xp;  // The voxel's index
 
 					for (size_t c = 0; c < m_cameras.size(); ++c)
 					{
-						Point point = m_cameras[c]->projectOnView(Point3f((float)x, (float)y, (float)z));
+						float xdiff = x - cameraPositions[c].x;
+						float ydiff = y - cameraPositions[c].y;
+						float zdiff = z - cameraPositions[c].z;
+						float distance = glm::sqrt(xdiff * xdiff + ydiff * ydiff + zdiff * zdiff);
+						voxel->distances.push_back(distance);
 
-						// Calculate pixel index in the lookup table  
-						int absPos = point.y * m_cameras[c]->getSize().width + point.x;
-						auto iterator = m_lookup[c].find(absPos);
-						if (iterator != m_lookup[c].end())
+						Point point = m_cameras[c]->projectOnView(Point3f((float)x, (float)y, (float)z));
+						cv::Size camSize = m_cameras[c]->getSize();
+
+						// Check if point is seen by camera
+						if (point.x >= 0 && point.x < camSize.width
+							&& point.y >= 0 && point.y < camSize.height)
 						{
-							// Pair exists, so add it
-							iterator->second.push_back(voxel);
+							voxel->pixelProjections.push_back(point);
 						}
 						else
 						{
-							// Pair didn't exist yet, so we insert a vector containing the current voxel at this pixel's location
-							m_lookup[c].insert({ absPos, { voxel } });
+							// Don't add it to the lookup table
+							voxel->pixelProjections.push_back(cv::Point(-1, -1));
+							continue;
+						}
+
+#pragma omp critical
+						{
+							// Calculate pixel index in the lookup table  
+							int absPos = point.y * m_cameras[c]->getSize().width + point.x;
+							auto iterator = m_lookup[c].find(absPos);
+							if (iterator != m_lookup[c].end())
+							{
+								// Pair exists, so add it
+								iterator->second.push_back(voxel);
+							}
+							else
+							{
+								// Pair didn't exist yet, so we insert a vector containing the current voxel at this pixel's location
+								m_lookup[c].insert({ absPos, { voxel } });
+							}
 						}
 					}
 					//Writing voxel 'p' is not critical as it's unique (thread safe)
@@ -148,6 +174,19 @@ namespace team45
 				}
 			}
 		}
+
+		// Sort each vector so that the voxel closest to the pixel is in front
+		for (int c = 0; c < m_cameras.size(); c++)
+		{
+			for (auto it = m_lookup[c].begin(); it != m_lookup[c].end(); it++)
+			{
+				std::sort(it->second.begin(), it->second.end(),
+					[c](Voxel* a, Voxel* b) {
+						return a->distances[c] < b->distances[c];
+					});
+			}
+		}
+
 		INFO("Voxels projected per cam {} {} {} {}", camCount[0], camCount[1], camCount[2], camCount[3]);
 		cout << "done!" << endl;
 	}
@@ -159,20 +198,8 @@ namespace team45
 	 */
 	void VoxelReconstruction::update()
 	{
-		// Prepare our flag that determines if a voxel is on in all cameras
-		// 00.....01111
-		int flag = 0;
 		for (int c = 0; c < m_cameras.size(); c++)
 		{
-			//if(m_toggle_camera[c])
-				flag |= (1 << c);
-		}
-
-		for (int c = 0; c < m_cameras.size(); c++)
-		{
-			/*if (!m_toggle_camera[c])
-				continue;*/
-
 			cv::Size camSize = m_cameras[c]->getSize();
 			int nrOfPixels = camSize.width * camSize.height;
 
@@ -184,54 +211,100 @@ namespace team45
 				int px = p % camSize.width;
 				Point point = cv::Point2f(px, py);
 
-				// chance foregroundimage to binary diff
-				if (m_cameras[c]->getBinaryDifference().at<uchar>(point) < 255)
-					continue;
+				// Only continue if this pixel has changed compared to the previous frame
+				// This means that the pixel should be on in the binary difference  
+				if (m_cameras[c]->getBinaryDifference().at<uchar>(point) < 255) continue;
 
 				// Now we know that this pixel was on in the binary difference
 				auto iterator = m_lookup[c].find(p);
-				if (iterator != m_lookup[c].end())
+				// This pixel does not have voxels mapped to it
+				if (iterator == m_lookup[c].end()) continue;
+
+				// Voxels mapped to this pixel, so evaluate them
+				for (int v = 0; v < iterator->second.size(); v++)
 				{
-					// Voxels mapped to this pixel, so evaluate them
-					for (int v = 0; v < iterator->second.size(); v++)
-					{
-						Voxel* voxel = iterator->second[v];
-						int voxelFlag = m_cameras[c]->getForegroundImage().at<uchar>(point) == 255;
-						// Check if the voxel is currently on
-						bool voxelOnPrev = voxel->camera_flags == flag;
+					Voxel* voxel = iterator->second[v];
+					// Get the current status of the pixel at the point
+					int voxelFlag = m_cameras[c]->getForegroundImage().at<uchar>(point) == 255;
+					// Check if the voxel was on in the previous frame
+					bool voxelOnPrev = voxel->camera_flags == m_all_camera_flags;
 
-						// Set flag c to voxelOnPrev's value
-						// First use a mask to turn off flag c
-						voxel->camera_flags &= ~(1 << c);
-						// Then make flag c equal to voxelFlag's value
-						voxel->camera_flags |= voxelFlag << c;
+					// Set flag c to voxelOnPrev's value
+					// First use a mask to turn off flag c
+					voxel->camera_flags &= ~(1 << c);
+					// Then make flag c equal to voxelFlag's value
+					voxel->camera_flags |= voxelFlag << c;
 
-						bool voxelOnNow = voxel->camera_flags == flag;
+					bool voxelOnNow = voxel->camera_flags == m_all_camera_flags;
 
 #pragma omp critical // The following operations are critical, since visible_voxels is shared by the threads
+					{
+						if (voxelOnPrev && !voxelOnNow)
 						{
-							if (voxelOnPrev && !voxelOnNow)
-							{
-								// Remove the voxel from visible_voxels
-								m_visible_voxels[voxel->visibleIndex] = m_visible_voxels[m_visible_voxels.size() - 1];
-								m_visible_voxels[voxel->visibleIndex]->visibleIndex = voxel->visibleIndex;
-								voxel->visibleIndex = -1;
-								m_visible_voxels.resize(m_visible_voxels.size() - 1);
-							}
-							else if (!voxelOnPrev && voxelOnNow)
-							{
-								// Add the voxel to visible_voxels
-								m_visible_voxels.push_back(voxel);
-								voxel->visibleIndex = m_visible_voxels.size() - 1;
-							}
+							// Remove the voxel from visible_voxels
+							m_visible_voxels[voxel->visibleIndex] = m_visible_voxels[m_visible_voxels.size() - 1];
+							m_visible_voxels[voxel->visibleIndex]->visibleIndex = voxel->visibleIndex;
+							voxel->visibleIndex = -1;
+							m_visible_voxels.resize(m_visible_voxels.size() - 1);
+						}
+						else if (!voxelOnPrev && voxelOnNow)
+						{
+							// Add the voxel to visible_voxels
+							m_visible_voxels.push_back(voxel);
+							voxel->visibleIndex = m_visible_voxels.size() - 1;
 						}
 					}
 				}
-				else
+			}
+		}
+
+		colorVoxels();
+	}
+
+	void VoxelReconstruction::colorVoxels()
+	{
+		for (int v = 0; v < m_visible_voxels.size(); v++)
+		{
+			Voxel* voxel = m_visible_voxels[v];
+
+			for (int c = 0; c < m_cameras.size(); c++)
+			{
+				cv::Point pixelPoint = voxel->pixelProjections[c];
+				int pixelIndex = pixelPoint.x + pixelPoint.y * m_cameras[c]->getSize().width;
+
+				// Iterator over the lookup table from the camera (all pixels)
+				auto mapIt = m_lookup[c].find(pixelIndex);
+				if (mapIt == m_lookup[c].end())
 				{
-					// This pixel does not have voxels mapped to it
-					continue;
+					ERROR("Pixel from voxel projection has no lookup!");
+					return;
 				}
+				auto voxels = mapIt->second;
+
+				// Iterator over the voxels from a single pixel
+				auto vecIt = voxels.begin();
+				// Move our iterator to the first voxel that is on in all cameras
+				while ((*vecIt)->camera_flags != m_all_camera_flags && vecIt != voxels.end())
+					vecIt++;
+
+				// Double check that we found a voxel (not actually necessary if no rounding errors have occured)
+				if (vecIt == voxels.end())
+				{
+					ERROR("Visible voxel was not found in the projected pixel vector!");
+					return;
+				}
+
+				if (*vecIt == voxel)
+				{
+					// First voxel encountered was the current one
+					// So we can color this voxel
+					//util::BGR color = m_cameras[c]->getFrame().ptr<util::BGR>(pixelPoint.y)[pixelPoint.x];
+					Vec3b color = m_cameras[c]->getFrame().at<Vec3b>(pixelPoint);
+					voxel->color = glm::vec3(color.val[2], color.val[1], color.val[0]) / 255.f;
+					break;
+				}
+
+				voxel->color = glm::vec3(0);
 			}
 		}
 	}

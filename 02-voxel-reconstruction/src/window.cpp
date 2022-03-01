@@ -25,12 +25,11 @@ namespace team45
 	}
 
 	/**
-	 * Main OpenGL initialisation for Windows-like system
+	 * OpenGL context initialisation
 	 */
 	bool Window::init(const char* win_name, Scene3DRenderer& s3d)
 	{
 		m_scene3d = &s3d;
-		/*      Screen/display attributes*/
 		int width = m_scene3d->getWidth();
 		int height = m_scene3d->getHeight();
 		int bits = 32;
@@ -67,11 +66,17 @@ namespace team45
 		glfwSetCursorEnterCallback(m_glfwWindow, cursorEnterCallback);
 		glfwSetWindowFocusCallback(m_glfwWindow, windowFocusCallback);
 
-		// Load Shader
+		// Clear color
+		m_clear_color = glm::vec4(245.f / 255.0f, 245.f / 255.0f, 220.f / 255.0f, 1.0f);
+		
+		// Load Shaders
+		m_basic_shader = new Shader();
+		m_basic_shader->Load(util::SHADER_DIR_STR + "basic");
+
 		m_voxel_shader = new Shader();
 		m_voxel_shader->Load(util::SHADER_DIR_STR + "voxel");
-
-		// Create camera
+		
+		// Create scene camera
 		m_scene_cam = new SceneCamera(60.f, width, height, 0.1f, 10000.f);
 		int size = m_scene3d->getReconstructor().getSize();
 		m_scene_cam->SetPos(size, 0, size);
@@ -85,9 +90,10 @@ namespace team45
 		m_floor_grid = new VertexBuffer();
 		m_floor_grid->Create(verts);
 
-		// Create coords
+		// Create coords to visualize
 		createCamCoord();
 		createWCoord();
+		createVolume();
 
 		return true;
 	}
@@ -97,11 +103,12 @@ namespace team45
 	 */
 	void Window::run()
 	{
+		static float currentTime = 0, previousTime = 0;
 		while (!glfwWindowShouldClose(m_glfwWindow))
 		{
-			m_currentTime = glfwGetTime();
-			m_deltaTime = m_currentTime - m_previousTime;
-			m_previousTime = m_currentTime;
+			currentTime = glfwGetTime();
+			m_deltaTime = currentTime - previousTime;
+			previousTime = currentTime;
 
 			update();
 			draw();
@@ -180,66 +187,109 @@ namespace team45
 	 */
 	void Window::draw()
 	{
-		glClearColor(245.f / 255.0f, 245.f / 255.0f, 220.f / 255.0f, 1.0f);
+		glClearColor(m_clear_color.r, m_clear_color.g, m_clear_color.b, m_clear_color.a);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		Scene3DRenderer& scene3d = WINDOW.getScene3d();
+
+		m_basic_shader->Begin();
+		// Set camera matrices
+		m_basic_shader->SetMat4("u_Projection", m_scene_cam->GetProjMatrix());
+		m_basic_shader->SetMat4("u_View", m_scene_cam->GetViewMatrix());
+
+		// All vertex buffers after this use this model, if u_Model in shader is not set again
+		glm::mat4 model = glm::mat4(1.0f);
+		// Rotate scene
+		float angle_radians = -(float)glm::radians(glfwGetTime()) * 2;
+		glm::vec3 axis = glm::vec3(0, 0, 1);
+		//model = glm::rotate(model, angle_radians, axis);
+		m_basic_shader->SetMat4("u_Model", model);
+
+		// Visualize scene
+		drawWireframe(m_w_coord);
+		drawWireframe(m_floor_grid);
+		drawWireframe(m_cam_coord);
+		drawWireframe(m_volume);
+
+		m_basic_shader->End();
 
 		m_voxel_shader->Begin();
 		// Set camera matrices
 		m_voxel_shader->SetMat4("u_Projection", m_scene_cam->GetProjMatrix());
 		m_voxel_shader->SetMat4("u_View", m_scene_cam->GetViewMatrix());
-
-		glm::mat4 model = glm::mat4(1.0f);
-		m_voxel_shader->SetMat4("u_Model", model);
-
-		// Draw origin
-		m_w_coord->Bind();
-		m_w_coord->Draw(GL_LINES);
-		m_w_coord->Unbind();
-
-		// Draw floor grid
-		m_floor_grid->Bind();
-		m_floor_grid->Draw(GL_LINES);
-		m_floor_grid->Unbind();
-
-		// Draw cameras
-		m_cam_coord->Bind();
-		m_cam_coord->Draw(GL_LINES);
-		m_cam_coord->Unbind();
-
 		// Draw voxels
 		drawVoxels();
 
 		m_voxel_shader->End();
+
 	}
 
+	void Window::drawWireframe(VertexBuffer* vb)
+	{
+		if (vb == nullptr)
+		{
+			ERROR("Vertexbuffer is not instantiated");
+			return;
+		}
+		vb->Bind();
+		vb->Draw(GL_LINES);
+		vb->Unbind();
+	}
+
+	/**
+	 * Draw all visible voxels
+	 */
+	void Window::drawVoxels()
+	{
+		std::vector<VoxelReconstruction::Voxel*> voxels = m_scene3d->getReconstructor().getVisibleVoxels();
+		int size = WINDOW.m_scene3d->getReconstructor().getStep();
+		for (size_t v = 0; v < voxels.size(); v++)
+		{
+			// Cast the position to floats
+			glm::vec3 pos = glm::vec3(voxels[v]->position);
+			glm::vec3 scale = glm::vec3(size);
+
+			glm::mat4 model = glm::mat4(1.0f);
+			model = glm::scale(model, scale);
+			model = glm::translate(model, pos / scale);
+
+			glm::vec4 color = glm::vec4(voxels[v]->color, 1);
+
+			m_voxel_shader->SetMat4("u_Model", model);
+			m_voxel_shader->SetVec4("u_Color", color);
+
+			m_cube->Bind();
+			m_cube->Draw();
+		}
+	}
+
+#pragma region __CALLBACKS
 	void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
 		Scene3DRenderer& scene3d = WINDOW.getScene3d();
 		if (action == GLFW_RELEASE) return;
+		if (key == GLFW_KEY_W) WINDOW.m_scene_cam->Move(Direction::Forward, WINDOW.m_deltaTime);
+		if (key == GLFW_KEY_A) WINDOW.m_scene_cam->Move(Direction::Left, WINDOW.m_deltaTime);
+		if (key == GLFW_KEY_S) WINDOW.m_scene_cam->Move(Direction::Backward, WINDOW.m_deltaTime);
+		if (key == GLFW_KEY_D) WINDOW.m_scene_cam->Move(Direction::Right, WINDOW.m_deltaTime);
+		if (key == GLFW_KEY_LEFT_CONTROL)  WINDOW.m_scene_cam->Move(Direction::Down, WINDOW.m_deltaTime);
+		if (key == GLFW_KEY_SPACE)  WINDOW.m_scene_cam->Move(Direction::Up, WINDOW.m_deltaTime);
+
+		// Check if key is 1 .. 4
+		int num = key - GLFW_KEY_1;
+		if (num >= 0 && num < (int)scene3d.getCameras().size())
+		{
+			scene3d.toggleCamera(num);
+		}
+
 		switch (key)
 		{
-		case GLFW_KEY_W: { WINDOW.m_scene_cam->Move(Direction::Forward, WINDOW.m_deltaTime); } break;
-		case GLFW_KEY_A: { WINDOW.m_scene_cam->Move(Direction::Left, WINDOW.m_deltaTime); } break;
-		case GLFW_KEY_S: { WINDOW.m_scene_cam->Move(Direction::Backward, WINDOW.m_deltaTime); } break;
-		case GLFW_KEY_D: { WINDOW.m_scene_cam->Move(Direction::Right, WINDOW.m_deltaTime); } break;
-		case GLFW_KEY_LEFT_CONTROL: { WINDOW.m_scene_cam->Move(Direction::Down, WINDOW.m_deltaTime); } break;
-		case GLFW_KEY_SPACE: { WINDOW.m_scene_cam->Move(Direction::Up, WINDOW.m_deltaTime); }break;
 		case GLFW_KEY_P: { WINDOW.m_paused = !WINDOW.m_paused; } break;
 		case GLFW_KEY_B: { scene3d.setCurrentFrame(scene3d.getCurrentFrame() - 1); } break;
 		case GLFW_KEY_N: { scene3d.setCurrentFrame(scene3d.getCurrentFrame() + 1); } break;
 		default:
 			break;
 		}
-
-		int num = key - GLFW_KEY_1;
-		// Check if key is 1 .. 4
-		if (num >= 1 && num <= (int)scene3d.getCameras().size())
-		{
-			scene3d.toggleCamera(--num);
-		}
-		
 	}
 
 	void Window::mouseCallback(GLFWwindow* window, int button, int action, int mods)
@@ -283,6 +333,9 @@ namespace team45
 		WINDOW.reset_cursor = focused;
 	}
 
+#pragma endregion
+
+	
 	/**
 	 * Draw the cameras
 	 */
@@ -353,91 +406,78 @@ namespace team45
 	/**
 	 * Draw the voxel bounding box
 	 */
-	void Window::drawVolume()
+	void Window::createVolume()
 	{
 		std::vector<cv::Point3f*> corners = m_scene3d->getReconstructor().getCorners();
 
-		glLineWidth(1.0f);
-		glPushMatrix();
-		glBegin(GL_LINES);
+		std::vector<Vertex> vertices;
+		Vertex v0;
+		v0.Position = glm::vec3(corners[0]->x, corners[0]->y, corners[0]->z);
+		v0.Color = glm::vec4(0.9f, 0.9f, 0.9f, 0.5f);
 
-		// VR->volumeCorners[0]; // what's this frank?
+		Vertex v1 = v0;
+		v1.Position = glm::vec3(corners[1]->x, corners[1]->y, corners[1]->z);
+
+		Vertex v2 = v0;
+		v2.Position = glm::vec3(corners[2]->x, corners[2]->y, corners[2]->z);
+
+		Vertex v3 = v0;
+		v3.Position = glm::vec3(corners[3]->x, corners[3]->y, corners[3]->z);
+
+		Vertex v4 = v0;
+		v4.Position = glm::vec3(corners[4]->x, corners[4]->y, corners[4]->z);
+
+		Vertex v5 = v0;
+		v5.Position = glm::vec3(corners[5]->x, corners[5]->y, corners[5]->z);
+
+		Vertex v6 = v0;
+		v6.Position = glm::vec3(corners[6]->x, corners[6]->y, corners[6]->z);
+
+		Vertex v7 = v0;
+		v7.Position = glm::vec3(corners[7]->x, corners[7]->y, corners[7]->z);
+
 		// bottom
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[0]->x, corners[0]->y, corners[0]->z);
-		glVertex3f(corners[1]->x, corners[1]->y, corners[1]->z);
+		vertices.push_back(v0);
+		vertices.push_back(v1);
 
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[1]->x, corners[1]->y, corners[1]->z);
-		glVertex3f(corners[2]->x, corners[2]->y, corners[2]->z);
+		vertices.push_back(v1);
+		vertices.push_back(v2);
 
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[2]->x, corners[2]->y, corners[2]->z);
-		glVertex3f(corners[3]->x, corners[3]->y, corners[3]->z);
+		vertices.push_back(v2);
+		vertices.push_back(v3);
 
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[3]->x, corners[3]->y, corners[3]->z);
-		glVertex3f(corners[0]->x, corners[0]->y, corners[0]->z);
+		vertices.push_back(v3);
+		vertices.push_back(v0);
 
 		// top
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[4]->x, corners[4]->y, corners[4]->z);
-		glVertex3f(corners[5]->x, corners[5]->y, corners[5]->z);
+		vertices.push_back(v4);
+		vertices.push_back(v5);
 
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[5]->x, corners[5]->y, corners[5]->z);
-		glVertex3f(corners[6]->x, corners[6]->y, corners[6]->z);
+		vertices.push_back(v5);
+		vertices.push_back(v6);
 
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[6]->x, corners[6]->y, corners[6]->z);
-		glVertex3f(corners[7]->x, corners[7]->y, corners[7]->z);
+		vertices.push_back(v6);
+		vertices.push_back(v7);
 
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[7]->x, corners[7]->y, corners[7]->z);
-		glVertex3f(corners[4]->x, corners[4]->y, corners[4]->z);
+		vertices.push_back(v7);
+		vertices.push_back(v4);
 
 		// connection
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[0]->x, corners[0]->y, corners[0]->z);
-		glVertex3f(corners[4]->x, corners[4]->y, corners[4]->z);
+		vertices.push_back(v0);
+		vertices.push_back(v4);
 
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[1]->x, corners[1]->y, corners[1]->z);
-		glVertex3f(corners[5]->x, corners[5]->y, corners[5]->z);
+		vertices.push_back(v1);
+		vertices.push_back(v5);
 
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[2]->x, corners[2]->y, corners[2]->z);
-		glVertex3f(corners[6]->x, corners[6]->y, corners[6]->z);
+		vertices.push_back(v2);
+		vertices.push_back(v6);
 
-		glColor4f(0.9f, 0.9f, 0.9f, 0.5f);
-		glVertex3f(corners[3]->x, corners[3]->y, corners[3]->z);
-		glVertex3f(corners[7]->x, corners[7]->y, corners[7]->z);
+		vertices.push_back(v3);
+		vertices.push_back(v7);
 
-		glEnd();
-		glPopMatrix();
-	}
-
-	/**
-	 * Draw all visible voxels
-	 */
-	void Window::drawVoxels()
-	{
-		std::vector<VoxelReconstruction::Voxel*> voxels = m_scene3d->getReconstructor().getVisibleVoxels();
-		int size = WINDOW.m_scene3d->getReconstructor().getStep();
-		for (size_t v = 0; v < voxels.size(); v++)
-		{
-			glm::vec3 pos = glm::vec3(voxels[v]->x, voxels[v]->y, voxels[v]->z);
-			glm::vec3 scale = glm::vec3(size);
-
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::scale(model, scale);
-			model = glm::translate(model, pos / scale);
-
-			m_voxel_shader->SetMat4("u_Model", model);
-
-			m_cube->Bind();
-			m_cube->Draw();
-		}
+		delete m_volume;
+		m_volume = new VertexBuffer();
+		m_volume->Create(vertices);
 	}
 
 	/**

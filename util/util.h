@@ -41,6 +41,13 @@ namespace util
 
 	static const float SCENE_CAM_SPEED = .01f;
 
+	struct BGR
+	{
+		byte blue;
+		byte green;
+		byte red;
+	};
+
 	/**
 	 * Linux/Windows friendly way to check if a file exists
 	 */

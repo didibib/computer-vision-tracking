@@ -76,6 +76,7 @@ namespace team45
 	 */
 	void Scene3DRenderer::toggleCamera(int camera_id)
 	{
+		m_current_camera = camera_id;
 		m_reconstructor.toggleCamera(camera_id);
 	}
 

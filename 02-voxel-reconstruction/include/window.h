@@ -14,30 +14,35 @@ namespace team45
 		Window() {};
 
 		float m_deltaTime = 0;
-		float m_currentTime = 0, m_previousTime = 0;
 		bool m_paused = false;
+
+		glm::vec4 m_clear_color;
 
 		SceneCamera* m_scene_cam;
 		Scene3DRenderer* m_scene3d;
 		GLFWwindow* m_glfwWindow = nullptr;
+
+		Shader* m_basic_shader;
 		Shader* m_voxel_shader;
 		
 		VertexBuffer* m_cube;
 		VertexBuffer* m_floor_grid;
 		VertexBuffer* m_cam_coord;
 		VertexBuffer* m_w_coord;
+		VertexBuffer* m_volume;
 
 		bool reset_cursor;
 		cv::Point2f m_cursor_last_pos;
 
 		void createCamCoord();
-		void drawVolume();
-		void drawVoxels();
+		void createVolume();
 		void createWCoord();
+
+		void drawWireframe(VertexBuffer*);
+		void drawVoxels();
 
 		void update();
 		void draw();
-		void quit();
 
 	public:
 		static Window& GetInstance()

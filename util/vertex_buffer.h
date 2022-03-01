@@ -10,6 +10,7 @@ namespace team45
 		glm::vec3 Normal;		// 3 * float = 12 bytes
 	};
 
+	// Provides methods for uploading vertex data
 	class VertexBuffer
 	{
 	public:
@@ -19,7 +20,9 @@ namespace team45
 		void Draw(GLenum mode = GL_TRIANGLES) const;
 		void Bind() const;
 		void Unbind() const;
+		std::string const& GetName() const { return m_name; }
 	private:
+		std::string m_name;
 		mutable bool m_IsBind;
 		int m_nVertices;
 		int m_nIndices;

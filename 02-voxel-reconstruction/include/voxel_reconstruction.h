@@ -14,36 +14,42 @@ namespace team45
 		 */
 		struct Voxel
 		{
-			int x, y, z, visibleIndex;                 // Coordinates and index in m_visible_voxels (-1 if none)
-			cv::Scalar color;                          // Color
-			int camera_flags;						   // Flag if voxel was on in camera[c] in the previous frame
+			glm::ivec3 position;
+			glm::vec3 color;    
+			std::vector<float> distances;				// Distance from this voxel to each camera 
+			std::vector<cv::Point> pixelProjections;	// Pixel that this voxel projects to on each camera ((-1,-1) if it doesn't project onto the camera)
+			int visibleIndex;							// Coordinates and index in m_visible_voxels (-1 if none)
+			int camera_flags;							// Bitwise Flag if voxel was on in camera[c] in the previous frame
 		};
 
 	private:
-		const std::vector<VoxelCamera*>& m_cameras;  // vector of pointers to cameras
-		const int m_height;                     // Cube half-space height from floor to ceiling
-		const int m_step;                       // Step size (space between voxels)
+		const std::vector<VoxelCamera*>& m_cameras;		// vector of pointers to cameras
+		const int m_height;								// Cube half-space height from floor to ceiling
+		const int m_step;								// Step size (space between voxels)
 
 		std::vector<bool> m_toggle_camera;
 
-		std::vector<cv::Point3f*> m_corners;    // Cube half-space corner locations
+		std::vector<cv::Point3f*> m_corners;			// Cube half-space corner locations
 
-		size_t m_voxels_amount;                 // Voxel count
-		cv::Size m_plane_size;                  // Camera FoV plane WxH
+		size_t m_voxels_amount;							// Voxel count
+		cv::Size m_plane_size;							// Camera FoV plane WxH
 
-		std::vector<Voxel*> m_voxels;           // Pointer vector to all voxels in the half-space
-		std::vector<Voxel*> m_visible_voxels;   // Pointer vector to all visible voxels
+		std::vector<Voxel*> m_voxels;					// Pointer vector to all voxels in the half-space
+		std::vector<Voxel*> m_visible_voxels;			// Pointer vector to all visible voxels
 
 		// Lookup table per camera, where a pixel (y*width + x) maps to all of the voxels that are projected onto it   
 		std::vector<std::map<int, std::vector<Voxel*>>> m_lookup;
 
+		int m_all_camera_flags;
+
 		void initialize();
 
 	public:
-		VoxelReconstruction(const std::vector<VoxelCamera*>&);
+		VoxelReconstruction(const std::vector<VoxelCamera*>&, int height = 2048, int step = 128);
 		virtual ~VoxelReconstruction();
 
 		void update();
+		void colorVoxels();
 
 		const std::vector<Voxel*>& getVisibleVoxels() const
 		{
