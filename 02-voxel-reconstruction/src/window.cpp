@@ -18,7 +18,7 @@ namespace team45
 	Window::~Window()
 	{
 		delete m_scene3d;
-		delete m_scene_cam;
+		delete m_scene_camera;
 
 		delete m_basic_shader;
 		delete m_voxel_shader;
@@ -85,9 +85,9 @@ namespace team45
 		m_voxel_shader->Load(util::SHADER_DIR_STR + "voxel");
 
 		// Create scene camera
-		m_scene_cam = new SceneCamera(60.f, width, height, 0.1f, 10000.f);
+		m_scene_camera = new SceneCamera(60.f, width, height, 0.1f, 10000.f);
 		int size = m_scene3d->getReconstructor().getSize();
-		m_scene_cam->SetPos(size, 0, size);
+		m_scene_camera->SetPos(1000, 0, 100);
 
 		// Create voxel
 		m_cube_vb = new VertexBuffer();
@@ -138,7 +138,32 @@ namespace team45
 	 */
 	void Window::update()
 	{
+		if (WINDOW.m_rotate_camera)
+		{
+			WINDOW.m_scene_camera->RotateAroundPoint(glm::vec3(0.f, 0.f, 500.f), 5000, -0.5f);
+		}
+
 		Scene3DRenderer& scene3d = WINDOW.getScene3d();
+
+		if (!m_rotate_camera)
+		{
+			if (isKeyRepeat(GLFW_KEY_W)) WINDOW.m_scene_camera->Move(Direction::Forward, WINDOW.m_deltaTime);
+			if (isKeyRepeat(GLFW_KEY_A)) WINDOW.m_scene_camera->Move(Direction::Left, WINDOW.m_deltaTime);
+			if (isKeyRepeat(GLFW_KEY_S)) WINDOW.m_scene_camera->Move(Direction::Backward, WINDOW.m_deltaTime);
+			if (isKeyRepeat(GLFW_KEY_D)) WINDOW.m_scene_camera->Move(Direction::Right, WINDOW.m_deltaTime);
+		}
+		if (isKeyRepeat(GLFW_KEY_LEFT_CONTROL))  WINDOW.m_scene_camera->Move(Direction::Down, WINDOW.m_deltaTime);
+		if (isKeyRepeat(GLFW_KEY_SPACE))  WINDOW.m_scene_camera->Move(Direction::Up, WINDOW.m_deltaTime);
+
+		if (isKeyPressed(GLFW_KEY_P)) WINDOW.m_paused = !WINDOW.m_paused;
+		if (isKeyPressed(GLFW_KEY_B)) scene3d.setCurrentFrame(scene3d.getCurrentFrame() - 1);
+		if (isKeyPressed(GLFW_KEY_N)) scene3d.setCurrentFrame(scene3d.getCurrentFrame() + 1);
+		if (isKeyPressed(GLFW_KEY_R))
+		{
+			WINDOW.m_rotate_camera = !WINDOW.m_rotate_camera;
+			WINDOW.m_scene_camera->Reset(WINDOW.m_rotate_camera);
+		}
+
 		if (scene3d.getCurrentFrame() > scene3d.getNumberOfFrames() - 2)
 		{
 			// Go to the start of the video if we've moved beyond the end
@@ -208,7 +233,7 @@ namespace team45
 
 		m_basic_shader->Begin();
 		// Set camera matrices
-		auto projectionView = m_scene_cam->GetProjMatrix() * m_scene_cam->GetViewMatrix();
+		auto projectionView = m_scene_camera->GetProjMatrix() * m_scene_camera->GetViewMatrix();
 		m_basic_shader->SetMat4("u_ProjectionView", projectionView);
 
 		glm::mat4 model = glm::mat4(1.0f);
@@ -249,7 +274,7 @@ namespace team45
 	{
 		std::vector<Voxel*> voxels = m_scene3d->getReconstructor().getVisibleVoxels();
 		int size = WINDOW.m_scene3d->getReconstructor().getStep();
-		auto projectionView = m_scene_cam->GetProjMatrix() * m_scene_cam->GetViewMatrix();
+		auto projectionView = m_scene_camera->GetProjMatrix() * m_scene_camera->GetViewMatrix();
 
 		//m_basic_shader->Begin();
 		//m_basic_shader->SetMat4("u_ProjectionView", projectionView);
@@ -301,32 +326,26 @@ namespace team45
 		m_voxel_shader->End();
 	}
 
+	bool Window::isKeyRepeat(int key)
+	{
+		return m_key_lookup[key] == GLFW_PRESS || m_key_lookup[key] == GLFW_REPEAT;
+	}
+
+	bool Window::isKeyPressed(int key)
+	{
+		return m_key_lookup[key] == GLFW_PRESS;
+	}
+
 #pragma region __CALLBACKS
 	void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
+		WINDOW.m_key_lookup[key] = action;
 		Scene3DRenderer& scene3d = WINDOW.getScene3d();
-		if (action == GLFW_RELEASE) return;
-		if (key == GLFW_KEY_W) WINDOW.m_scene_cam->Move(Direction::Forward, WINDOW.m_deltaTime);
-		if (key == GLFW_KEY_A) WINDOW.m_scene_cam->Move(Direction::Left, WINDOW.m_deltaTime);
-		if (key == GLFW_KEY_S) WINDOW.m_scene_cam->Move(Direction::Backward, WINDOW.m_deltaTime);
-		if (key == GLFW_KEY_D) WINDOW.m_scene_cam->Move(Direction::Right, WINDOW.m_deltaTime);
-		if (key == GLFW_KEY_LEFT_CONTROL)  WINDOW.m_scene_cam->Move(Direction::Down, WINDOW.m_deltaTime);
-		if (key == GLFW_KEY_SPACE)  WINDOW.m_scene_cam->Move(Direction::Up, WINDOW.m_deltaTime);
-
 		// Check if key is 1 .. 4
 		int num = key - GLFW_KEY_1;
 		if (num >= 0 && num < (int)scene3d.getCameras().size())
 		{
 			scene3d.toggleCamera(num);
-		}
-
-		switch (key)
-		{
-		case GLFW_KEY_P: { WINDOW.m_paused = !WINDOW.m_paused; } break;
-		case GLFW_KEY_B: { scene3d.setCurrentFrame(scene3d.getCurrentFrame() - 1); } break;
-		case GLFW_KEY_N: { scene3d.setCurrentFrame(scene3d.getCurrentFrame() + 1); } break;
-		default:
-			break;
 		}
 	}
 
@@ -337,19 +356,20 @@ namespace team45
 
 	void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 	{
-
+		WINDOW.m_scene_camera->Zoom(yoffset);
 	}
 
 	void Window::cursorCallback(GLFWwindow* window, double xpos, double ypos)
 	{
-		if (WINDOW.reset_cursor)
+		if (WINDOW.m_reset_cursor)
 		{
 			WINDOW.m_cursor_last_pos = cv::Point2f(xpos, ypos);
-			WINDOW.reset_cursor = false;
+			WINDOW.m_reset_cursor = false;
 		}
-		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS
+			&& !WINDOW.m_rotate_camera)
 		{
-			WINDOW.m_scene_cam->Cursor(xpos - WINDOW.m_cursor_last_pos.x, WINDOW.m_cursor_last_pos.y - ypos);
+			WINDOW.m_scene_camera->Cursor(xpos - WINDOW.m_cursor_last_pos.x, WINDOW.m_cursor_last_pos.y - ypos);
 		}
 		WINDOW.m_cursor_last_pos = cv::Point2f(xpos, ypos);
 	}
@@ -357,18 +377,18 @@ namespace team45
 	void Window::frameBufferCallback(GLFWwindow* window, int width, int height)
 	{
 		WINDOW.m_scene3d->setSize(width, height);
-		WINDOW.m_scene_cam->OnWindowResize(width, height);
+		WINDOW.m_scene_camera->OnWindowResize(width, height);
 		glViewport(0, 0, width, height);
 	}
 
 	void Window::cursorEnterCallback(GLFWwindow* window, int entered)
 	{
-		WINDOW.reset_cursor = entered;
+		WINDOW.m_reset_cursor = entered;
 	}
 
 	void Window::windowFocusCallback(GLFWwindow* window, int focused)
 	{
-		WINDOW.reset_cursor = focused;
+		WINDOW.m_reset_cursor = focused;
 	}
 
 #pragma endregion

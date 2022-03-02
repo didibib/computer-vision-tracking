@@ -19,22 +19,23 @@ namespace team45
 
 		glm::vec4 m_clear_color;
 
-		SceneCamera* m_scene_cam;
-		Scene3DRenderer* m_scene3d;
+		SceneCamera* m_scene_camera = nullptr;
+		Scene3DRenderer* m_scene3d = nullptr;
 		GLFWwindow* m_glfwWindow = nullptr;
 
-		Shader* m_basic_shader;
-		Shader* m_voxel_shader;
+		Shader* m_basic_shader = nullptr;
+		Shader* m_voxel_shader = nullptr;
 		
-		VertexBuffer* m_cube_vb;
-		VertexBuffer* m_floor_grid_vb;
-		VertexBuffer* m_cam_coord_vb;
-		VertexBuffer* m_w_coord_vb;
-		VertexBuffer* m_volume_vb;
+		VertexBuffer* m_cube_vb = nullptr;
+		VertexBuffer* m_floor_grid_vb = nullptr;
+		VertexBuffer* m_cam_coord_vb = nullptr;
+		VertexBuffer* m_w_coord_vb = nullptr;
+		VertexBuffer* m_volume_vb = nullptr;
 
-		VoxelBuffer* m_voxel_buffer;
+		VoxelBuffer* m_voxel_buffer = nullptr;
 
-		bool reset_cursor;
+		bool m_rotate_camera = true;
+		bool m_reset_cursor = false;
 		cv::Point2f m_cursor_last_pos;
 
 		void createCamCoord();
@@ -46,6 +47,10 @@ namespace team45
 
 		void update();
 		void draw();
+
+		std::map<int, int> m_key_lookup;
+		bool isKeyRepeat(int);
+		bool isKeyPressed(int);
 
 	public:
 		static Window& GetInstance()
@@ -76,7 +81,7 @@ namespace team45
 
 		SceneCamera& getSceneCam() const
 		{
-			return *m_scene_cam;
+			return *m_scene_camera;
 		}
 	};
 } /* namespace team45 */

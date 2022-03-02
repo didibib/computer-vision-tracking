@@ -19,14 +19,16 @@ namespace team45
 		const glm::vec3& GetPos();
 		void SetPos(glm::vec3 const& pos);
 		void SetPos(float const& x, float const& y, float const& z);
+		void RotateAroundPoint(glm::vec3 target, float radius, float speed = 1);
+		void Reset(bool rotate_camera);
+		void Zoom(float offset);
+
 
 		const glm::mat4& GetProjMatrix();
 		// Returns the view matrix calculated using Euler Angles and the LookAt Matrix
 		glm::mat4 GetViewMatrix();
-		const glm::vec3& GetForward();
 	private:
 		void UpdateCameraVectors();
-	private:
 		float m_Fov;
 		float m_Near;
 		float m_Far;
@@ -38,12 +40,13 @@ namespace team45
 
 		float m_MoveSpeed = 1000;
 		float m_MouseSensivity = 0.8f;
-	private:
 		glm::vec3 m_Position;
 		glm::vec3 m_Forward;
 		glm::vec3 m_Up;
 		glm::vec3 m_Right;
 		glm::vec3 m_WorldUp;
 		glm::mat4 m_Projection;
+		glm::mat4 m_View;
+
 	};
 }

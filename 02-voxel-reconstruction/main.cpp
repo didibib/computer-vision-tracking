@@ -16,13 +16,16 @@ static std::vector<VoxelCamera*> m_cam_views;
 
 void showKeys()
 {
-	std::cout << "VoxelReconstruction v" << util::VERSION	<< std::endl << std::endl;
-	std::cout << "Use these keys:"							<< std::endl;
-	std::cout << "	w,a,s,d : Move scene camera"			<< std::endl;
-	std::cout << "	1,2,3,4 : Toggle voxel camera #"		<< std::endl;
-	std::cout << "	p       : Pause"						<< std::endl;
-	std::cout << "	b       : Frame back"					<< std::endl;
-	std::cout << "	n       : Next frame"					<< std::endl << std::endl;
+	std::cout << "VoxelReconstruction v" << util::VERSION		<< std::endl << std::endl;
+	std::cout << "Use these keys:"								<< std::endl;
+	std::cout << "	w,a,s,d     : Move camera in 2d"			<< std::endl;
+	std::cout << "	space, ctrl : Move camera up and down"		<< std::endl;
+	std::cout << "	scroll      : Zoom"							<< std::endl;
+	std::cout << "	r           : Rotate camera around scene"	<< std::endl;
+	std::cout << "	1,2,3,4     : Toggle voxel camera #"		<< std::endl;
+	std::cout << "	p           : Pause"						<< std::endl;
+	std::cout << "	b           : Frame back"					<< std::endl;
+	std::cout << "	n           : Next frame"					<< std::endl << std::endl;
 }
 
 void getCameraData()
