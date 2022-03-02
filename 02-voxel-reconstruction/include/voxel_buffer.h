@@ -9,7 +9,7 @@ namespace team45
 		VoxelBuffer();
 		~VoxelBuffer();
 		void Create(int voxel_amount);
-		void Draw(const std::vector<Voxel>& voxels) const;
+		void Draw(const std::vector<VoxelGPU>& voxels) const;
 		void SetName(std::string const& name) { m_Name = name; }
 		std::string const& GetName() const { return m_Name; }
 	private:

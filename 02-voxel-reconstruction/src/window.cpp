@@ -208,8 +208,8 @@ namespace team45
 
 		m_basic_shader->Begin();
 		// Set camera matrices
-		m_basic_shader->SetMat4("u_Projection", m_scene_cam->GetProjMatrix());
-		m_basic_shader->SetMat4("u_View", m_scene_cam->GetViewMatrix());
+		auto projectionView = m_scene_cam->GetProjMatrix() * m_scene_cam->GetViewMatrix();
+		m_basic_shader->SetMat4("u_ProjectionView", projectionView);
 
 		glm::mat4 model = glm::mat4(1.0f);
 		// Rotate scene
@@ -247,20 +247,12 @@ namespace team45
 	 */
 	void Window::drawVoxels()
 	{
-		m_voxel_shader->Begin();
-		// Set camera matrices
-		m_voxel_shader->SetMat4("u_Projection", m_scene_cam->GetProjMatrix());
-		m_voxel_shader->SetMat4("u_View", m_scene_cam->GetViewMatrix());
-		// Draw voxels
 		std::vector<Voxel*> voxels = m_scene3d->getReconstructor().getVisibleVoxels();
 		int size = WINDOW.m_scene3d->getReconstructor().getStep();
+		auto projectionView = m_scene_cam->GetProjMatrix() * m_scene_cam->GetViewMatrix();
 
-		//glm::vec3 scale = glm::vec3(size);
-		//glm::mat4 model = glm::mat4(1.0f);
-		//model = glm::scale(model, scale);
-		//m_voxel_shader->SetMat4("u_Model", model);
-
-		//m_voxel_buffer->Draw(voxels);
+		m_basic_shader->Begin();
+		m_basic_shader->SetMat4("u_ProjectionView", projectionView);
 
 		for (size_t v = 0; v < voxels.size(); v++)
 		{
@@ -274,11 +266,37 @@ namespace team45
 
 			glm::vec4 color = glm::vec4(voxels[v]->color, 1);
 
-			m_voxel_shader->SetMat4("u_Model", model);
+			m_basic_shader->SetMat4("u_Model", model);
 
 			m_cube_vb->Bind();
 			m_cube_vb->Draw();
+			m_cube_vb->Unbind();
 		}
+		m_basic_shader->End();
+
+		m_voxel_shader->Begin();
+		// Set camera matrices
+		m_voxel_shader->SetMat4("u_ProjectionView", projectionView);
+		// Draw voxels
+
+		//glm::vec3 scale = glm::vec3(size);
+		//glm::mat4 model0 = glm::mat4(1.0f);
+		//model0 = glm::scale(model0, scale);
+
+		//std::vector<VoxelGPU> data;
+		//data.reserve(voxels.size());
+		//// Transform Voxel to VoxelGPU
+		//std::transform(std::begin(voxels), std::end(voxels),
+		//	std::back_inserter(data), [model0, scale](Voxel* v) {
+		//		VoxelGPU vgpu;
+		//		vgpu.position = v->position;
+		//		vgpu.color = v->color;
+		//		vgpu.model = glm::translate(model0, v->position / scale);
+		//		return vgpu;
+		//	});
+
+		//m_voxel_buffer->Draw(data);
+
 
 		m_voxel_shader->End();
 	}
