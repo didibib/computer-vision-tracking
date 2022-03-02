@@ -260,7 +260,7 @@ namespace team45
 		while (vc.read(frame))
 		{
 			// Learning rate of -1, so it automatically adapts
-			m_bg_model->apply(frame, tempMask, 1);
+			m_bg_model->apply(frame, tempMask, -1);
 		}
 
 
@@ -656,12 +656,13 @@ namespace team45
 
 	void VoxelCamera::createForegroundImage()
 	{
-		cv::Mat tmp, tmpMask, foreground_mask;
+		cv::Mat blurred, tmp, tmpMask, foreground_mask;
+		//cv::GaussianBlur(getFrame(), blurred, Size(3, 3), 1, 1);
 		m_bg_model->apply(getFrame(), tmpMask, 0);
 		cv::threshold(tmpMask, tmpMask, 200, 255, cv::THRESH_BINARY);
 
 		// 3x3 morphological kernel, representing a cross 
-		cv::Mat kernel = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3,3));
+		cv::Mat kernel = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(5,5));
 
 		cv::erode(tmpMask, tmp, kernel);
 		cv::dilate(tmp, foreground_mask, kernel);

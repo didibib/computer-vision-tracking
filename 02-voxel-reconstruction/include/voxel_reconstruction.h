@@ -29,6 +29,7 @@ namespace team45
 
 		void initialize();
 		void colorVoxels();
+		bool colorVoxel(Voxel* voxel, int cam);
 
 	public:
 		VoxelReconstruction(const std::vector<VoxelCamera*>&, int height = 2048, int step = 128);

@@ -263,21 +263,59 @@ namespace team45
 
 	void VoxelReconstruction::colorVoxels()
 	{
+
 		for (int v = 0; v < m_visible_voxels.size(); v++)
 		{
 			Voxel* voxel = m_visible_voxels[v];
 
-			for (int c = 0; c < m_cameras.size(); c++)
+			// Find the closest camera
+			// Can be changed to either the camera with the smallest angle,
+			// Or maybe the camera to which the normal on the voxel (if we can calculate it with it's neighbourhood) points towards?
+			//int cam;
+			//float closestDistance = 3.40281e+038;
+			//for (int c = 0; c < m_cameras.size(); c++)
+			//{
+			//	if (voxel->distances[c] >= closestDistance)
+			//		continue;
+			//	cam = c;
+			//	closestDistance = voxel->distances[c];
+			//}
+			
+			// For now, color the voxel using the front camera
+			colorVoxel(voxel, 1);
+		}
+	}
+
+	
+	bool VoxelReconstruction::colorVoxel(Voxel* voxel, int cam)
+	{
+		// Area around the pixel that we check for occlusions
+		int xOffset = 2;
+		int yOffset = xOffset;
+
+		cv::Point pixelPoint = voxel->pixelProjections[cam];
+		int pixelIndex = pixelPoint.x + pixelPoint.y * m_cameras[cam]->getSize().width;
+
+		Voxel* closestVoxel = voxel;
+
+		// Look in an area around the voxel to see if we can find an occluding voxel
+		for (int y = pixelPoint.y - yOffset; y <= pixelPoint.y + yOffset; y++)
+		{
+			// Early stop once we find a closer voxel that occludes the current one
+			if (closestVoxel != voxel)
+				break;
+			for (int x = pixelPoint.x - xOffset; x <= pixelPoint.x + xOffset; x++)
 			{
-				cv::Point pixelPoint = voxel->pixelProjections[c];
-				int pixelIndex = pixelPoint.x + pixelPoint.y * m_cameras[c]->getSize().width;
+				// Early stop again once we find a closer voxel that occludes the current one
+				if (closestVoxel != voxel)
+					break;
 
 				// Iterator over the lookup table from the camera (all pixels)
-				auto mapIt = m_lookup[c].find(pixelIndex);
-				if (mapIt == m_lookup[c].end())
+				auto mapIt = m_lookup[cam].find(pixelIndex);
+				if (mapIt == m_lookup[cam].end())
 				{
 					ERROR("Pixel from voxel projection has no lookup!");
-					return;
+					return false;
 				}
 				auto voxels = mapIt->second;
 
@@ -291,22 +329,26 @@ namespace team45
 				if (vecIt == voxels.end())
 				{
 					ERROR("Visible voxel was not found in the projected pixel vector!");
-					return;
+					return false;
 				}
-
-				if (*vecIt == voxel)
-				{
-					// First voxel encountered was the current one
-					// So we can color this voxel
-					//util::BGR color = m_cameras[c]->getFrame().ptr<util::BGR>(pixelPoint.y)[pixelPoint.x];
-					Vec3b color = m_cameras[c]->getFrame().at<Vec3b>(pixelPoint);
-					voxel->color = glm::vec3(color.val[2], color.val[1], color.val[0]) / 255.f;
-					break;
-				}
-
-				voxel->color = glm::vec3(0);
+				if ((*vecIt)->distances[cam] < closestVoxel->distances[cam])
+					closestVoxel = *vecIt;
 			}
 		}
+
+		if (closestVoxel == voxel)
+		{
+			// We encounted no voxels that occlude the original voxel
+			// So we can color this voxel
+			Vec3b color = m_cameras[cam]->getFrame().at<Vec3b>(pixelPoint);
+			voxel->color = glm::vec3(color.val[2], color.val[1], color.val[0]) / 255.f;
+			return true;
+		}
+
+		// The voxel is occluded, so color it black
+		voxel->color = glm::vec3(0);
+		return false;
 	}
+
 
 } /* namespace team45 */
