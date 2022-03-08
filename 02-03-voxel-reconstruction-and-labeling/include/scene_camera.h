@@ -9,8 +9,8 @@ namespace team45
 	class SceneCamera
 	{
 	public:
-		SceneCamera() = delete;
-		SceneCamera(const float& fov, const int& viewWidth, const int& viewHeight, const float& nearPlane, const float& farPlane);
+		SceneCamera();
+		void Init(const float& fov, const int& viewWidth, const int& viewHeight, const float& nearPlane, const float& farPlane);
 
 		void Move(const Direction& dir, const float& deltaTime);
 		void Cursor(float xOffset, float yOffset);

@@ -22,7 +22,6 @@ namespace team45
 
 	VoxelCamera::~VoxelCamera()
 	{
-		delete m_bg_model;
 	}
 
 	/**

@@ -17,17 +17,22 @@ namespace team45
 
 	Window::~Window()
 	{
-		delete m_scene3d;
 		delete m_scene_camera;
+		m_scene_camera = nullptr;
 
 		delete m_basic_shader;
+		m_basic_shader = nullptr;
 		delete m_voxel_shader;
+		m_voxel_shader = nullptr;
 
-		delete m_voxel_shader;
 		delete m_cam_coord_vb;
+		m_cam_coord_vb = nullptr;
 		delete m_floor_grid_vb;
+		m_floor_grid_vb = nullptr;
 		delete m_volume_vb;
+		m_volume_vb = nullptr;
 		delete m_cube_vb;
+		m_cube_vb = nullptr;
 
 		glfwDestroyWindow(m_glfwWindow);
 		glfwTerminate();
@@ -85,7 +90,8 @@ namespace team45
 		m_voxel_shader->Load(util::SHADER_DIR_STR + "voxel");
 
 		// Create scene camera
-		m_scene_camera = new SceneCamera(60.f, width, height, 0.1f, 10000.f);
+		m_scene_camera = new SceneCamera();
+		m_scene_camera->Init(60.f, width, height, 0.1f, 10000.f);
 		int size = m_scene3d->getReconstructor().getSize();
 		m_scene_camera->SetPos(1000, 0, 100);
 

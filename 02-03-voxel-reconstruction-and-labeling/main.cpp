@@ -11,7 +11,7 @@ const int m_cam_views_amount = 4;
 const int m_voxel_width = 2048;
 const int m_voxel_height = 2048;
 const int m_voxel_depth = 2048;
-const int m_voxel_step = 64;
+const int m_voxel_step = 128;
 
 static std::vector<VoxelCamera*> m_cam_views;
 

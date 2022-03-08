@@ -36,7 +36,7 @@ namespace team45
 
 	public:
 		Scene3DRenderer(VoxelReconstruction&, const std::vector<VoxelCamera*>&);
-		virtual ~Scene3DRenderer();
+		~Scene3DRenderer();
 
 		bool processFrame();
 		void toggleCamera(int);
