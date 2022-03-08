@@ -136,6 +136,21 @@ namespace team45
 
 	bool VoxelCamera::detIntrinsics()
 	{
+		cv::FileStorage fs;
+
+        if (util::fexists(m_data_path + util::INTRINSICS_FILE))
+        {
+            INFO("Reading intrinics from {}", m_data_path + util::INTRINSICS_FILE);
+            fs.open(m_data_path + util::INTRINSICS_FILE, FileStorage::READ);
+            if (fs.isOpened())
+            {
+                fs["CameraMatrix"] >> m_intrinsic;
+                fs["DistortionCoeffs"] >> m_dist_coeffs;
+                fs.release();
+            }
+            return true;
+        }
+
 		// Creating vector to store vectors of 3D points for each checkerboard image
 		std::vector<std::vector<cv::Point3f>> objPoints;
 
@@ -189,7 +204,6 @@ namespace team45
 		double finalError = cv::calibrateCamera(objPoints, imgPoints, frameSize, m_intrinsic, m_dist_coeffs, m_R, m_T);
 		INFO("Calibrated camera with error: {}", finalError);
 
-		cv::FileStorage fs;
 		fs.open(m_data_path + util::INTRINSICS_FILE, FileStorage::WRITE);
 		if (fs.isOpened())
 		{

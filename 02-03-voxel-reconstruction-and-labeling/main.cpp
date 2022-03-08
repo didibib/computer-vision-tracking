@@ -13,7 +13,7 @@ const int m_voxel_step = 32;
 
 static std::vector<VoxelCamera*> m_cam_views;
 
-const std::string project = "4persons/";
+const std::string project = "horse/";
 const std::string cam_path = util::DATA_DIR_STR + project + "cam";
 
 void showKeys()

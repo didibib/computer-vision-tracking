@@ -244,13 +244,19 @@ namespace team45
 							// Remove the voxel from visible_voxels
 							m_visible_voxels[voxel->visibleIndex] = m_visible_voxels[m_visible_voxels.size() - 1];
 							m_visible_voxels[voxel->visibleIndex]->visibleIndex = voxel->visibleIndex;
+
+							m_visible_voxels_gpu[voxel->visibleIndex] = m_visible_voxels_gpu[m_visible_voxels_gpu.size() - 1];
+
 							voxel->visibleIndex = -1;
+
 							m_visible_voxels.resize(m_visible_voxels.size() - 1);
+							m_visible_voxels_gpu.resize(m_visible_voxels_gpu.size() - 1);
 						}
 						else if (!voxelOnPrev && voxelOnNow)
 						{
 							// Add the voxel to visible_voxels
-							m_visible_voxels.push_back(voxel);
+							m_visible_voxels.push_back(voxel);							
+							m_visible_voxels_gpu.push_back(createVoxelGPU(*voxel));
 							voxel->visibleIndex = m_visible_voxels.size() - 1;
 						}
 					}
@@ -261,9 +267,23 @@ namespace team45
 		colorVoxels();
 	}
 
+	VoxelGPU VoxelReconstruction::createVoxelGPU(Voxel const& voxel)
+	{
+		VoxelGPU vgpu;
+		vgpu.color = voxel.color;
+		vgpu.position = voxel.position;
+
+		glm::vec3 scale = glm::vec3(m_step);
+		glm::mat4 model0 = glm::mat4(1.0f);
+		model0 = glm::scale(model0, scale);
+
+		vgpu.model = glm::translate(model0, voxel.position / scale);
+
+		return vgpu;
+	}
+
 	void VoxelReconstruction::colorVoxels()
 	{
-
 		for (int v = 0; v < m_visible_voxels.size(); v++)
 		{
 			Voxel* voxel = m_visible_voxels[v];
@@ -283,6 +303,8 @@ namespace team45
 			
 			// For now, color the voxel using the front camera
 			colorVoxel(voxel, 1);
+
+			m_visible_voxels_gpu[v].color = voxel->color;
 		}
 	}
 
@@ -349,6 +371,4 @@ namespace team45
 		voxel->color = glm::vec3(0);
 		return false;
 	}
-
-
 } /* namespace team45 */

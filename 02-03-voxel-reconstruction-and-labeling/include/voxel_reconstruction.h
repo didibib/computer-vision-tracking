@@ -21,6 +21,7 @@ namespace team45
 
 		std::vector<Voxel*> m_voxels;					// Pointer vector to all voxels in the half-space
 		std::vector<Voxel*> m_visible_voxels;			// Pointer vector to all visible voxels
+		std::vector<VoxelGPU> m_visible_voxels_gpu;
 
 		// Lookup table per camera, where a pixel (y*width + x) maps to all of the voxels that are projected onto it   
 		std::vector<std::map<int, std::vector<Voxel*>>> m_lookup;
@@ -30,6 +31,7 @@ namespace team45
 		void initialize();
 		void colorVoxels();
 		bool colorVoxel(Voxel* voxel, int cam);
+		VoxelGPU createVoxelGPU(Voxel const& voxel);
 
 	public:
 		VoxelReconstruction(const std::vector<VoxelCamera*>&, int height = 2048, int step = 128);
@@ -40,6 +42,11 @@ namespace team45
 		const std::vector<Voxel*>& getVisibleVoxels() const
 		{
 			return m_visible_voxels;
+		}
+
+		const std::vector<VoxelGPU>& getVisibleVoxelsGPU() const
+		{
+			return m_visible_voxels_gpu;
 		}
 
 		const std::vector<Voxel*>& getVoxels() const

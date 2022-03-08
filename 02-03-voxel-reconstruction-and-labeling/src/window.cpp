@@ -272,55 +272,16 @@ namespace team45
 	 */
 	void Window::drawVoxels()
 	{
-		std::vector<Voxel*> voxels = m_scene3d->getReconstructor().getVisibleVoxels();
+		std::vector<VoxelGPU> voxels = m_scene3d->getReconstructor().getVisibleVoxelsGPU();
 		int size = WINDOW.m_scene3d->getReconstructor().getStep();
 		auto projectionView = m_scene_camera->GetProjMatrix() * m_scene_camera->GetViewMatrix();
-
-		//m_basic_shader->Begin();
-		//m_basic_shader->SetMat4("u_ProjectionView", projectionView);
-
-		//for (size_t v = 0; v < voxels.size(); v++)
-		//{
-		//	// Cast the position to floats
-		//	glm::vec3 pos = glm::vec3(voxels[v]->position);
-		//	glm::vec3 scale = glm::vec3(size);
-
-		//	glm::mat4 model = glm::mat4(1.0f);
-		//	model = glm::scale(model, scale);
-		//	model = glm::translate(model, pos / scale);
-
-		//	glm::vec4 color = glm::vec4(voxels[v]->color, 1);
-
-		//	m_basic_shader->SetMat4("u_Model", model);
-
-		//	m_cube_vb->Bind();
-		//	m_cube_vb->Draw();
-		//	m_cube_vb->Unbind();
-		//}
-		//m_basic_shader->End();
 
 		m_voxel_shader->Begin();
 		// Set camera matrices
 		m_voxel_shader->SetMat4("u_ProjectionView", projectionView);
 		// Draw voxels
 
-		glm::vec3 scale = glm::vec3(size);
-		glm::mat4 model0 = glm::mat4(1.0f);
-		model0 = glm::scale(model0, scale);
-
-		std::vector<VoxelGPU> data;
-		data.reserve(voxels.size());
-		// Transform Voxel to VoxelGPU
-		std::transform(std::begin(voxels), std::end(voxels),
-			std::back_inserter(data), [model0, scale](Voxel* v) {
-				VoxelGPU vgpu;
-				vgpu.position = v->position;
-				vgpu.color = v->color;
-				vgpu.model = glm::translate(model0, v->position / scale);
-				return vgpu;
-			});
-
-		m_voxel_buffer->Draw(data);
+		m_voxel_buffer->Draw(voxels);
 
 
 		m_voxel_shader->End();
