@@ -47,8 +47,8 @@ add_subdirectory(vendor/glm)
 message(STATUS "Adding subdirectory '01-camera-geometric-calibration'")
 add_subdirectory(01-camera-geometric-calibration)
 
-message(STATUS "Adding subdirectory '02-voxel-reconstruction'")
-add_subdirectory(02-voxel-reconstruction)
+message(STATUS "Adding subdirectory '02-03-voxel-reconstruction-and-labeling'")
+add_subdirectory(02-03-voxel-reconstruction-and-labeling)
 
 # (function found in: cmake/)
-set_startup_project(02-voxel-reconstruction)
+set_startup_project(02-03-voxel-reconstruction-and-labeling)
