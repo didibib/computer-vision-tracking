@@ -9,7 +9,9 @@ namespace team45
 	class VoxelReconstruction
 	{
 		const std::vector<VoxelCamera*>& m_cameras;		// vector of pointers to cameras
+		const int m_width;
 		const int m_height;								// Cube half-space height from floor to ceiling
+		const int m_depth;								// Cube half-space height from floor to ceiling
 		const int m_step;								// Step size (space between voxels)
 
 		std::vector<bool> m_toggle_camera;
@@ -34,7 +36,7 @@ namespace team45
 		VoxelGPU createVoxelGPU(Voxel const& voxel);
 
 	public:
-		VoxelReconstruction(const std::vector<VoxelCamera*>&, int height = 2048, int step = 128);
+		VoxelReconstruction(const std::vector<VoxelCamera*>&, int width, int height, int depth, int step);
 		virtual ~VoxelReconstruction();
 
 		void update();

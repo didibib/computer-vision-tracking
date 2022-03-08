@@ -12,8 +12,8 @@ namespace team45
 	 * Constructor
 	 * Voxel reconstruction class
 	 */
-	VoxelReconstruction::VoxelReconstruction(const vector<VoxelCamera*>& cs, int height, int step) :
-		m_cameras(cs), m_height(height), m_step(step)
+	VoxelReconstruction::VoxelReconstruction(const vector<VoxelCamera*>& cs, int width, int height, int depth, int step) :
+		m_cameras(cs), m_width(width), m_height(height), m_depth(depth), m_step(step)
 	{
 		for (size_t c = 0; c < m_cameras.size(); ++c)
 		{
@@ -51,12 +51,12 @@ namespace team45
 	void VoxelReconstruction::initialize()
 	{
 		// Cube dimensions from [(-m_height, m_height), (-m_height, m_height), (0, m_height)]
-		const int xL = -m_height;
-		const int xR = m_height;
+		const int xL = -m_width;
+		const int xR = m_width;
 		const int yL = -m_height;
 		const int yR = m_height;
 		const int zL = 0;
-		const int zR = m_height;
+		const int zR = m_depth;
 		const int plane_y = (yR - yL) / m_step;
 		const int plane_x = (xR - xL) / m_step;
 		const int plane = plane_y * plane_x;
