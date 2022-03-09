@@ -85,4 +85,5 @@ namespace team45
 		glm::vec2 UV;			// 2 * float = 8  bytes
 		glm::vec3 Normal;		// 3 * float = 12 bytes
 	};
+
 }

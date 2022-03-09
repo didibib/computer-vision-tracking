@@ -275,16 +275,6 @@ namespace team45
 			// Learning rate of -1, so it automatically adapts
 			m_bg_model->apply(frame, tempMask, -1);
 		}
-
-
-		// TESTING
-		/*cv::VideoCapture tvc(m_data_path + util::VIDEO_FILE);
-		tvc.read(frame);
-		cv::imshow("BS TEST", frame);
-		cv::waitKey(0);
-		m_bg_model->apply(frame, tempMask, 0);
-		cv::imshow("BS TEST", tempMask);
-		cv::waitKey(0);*/
 	}
 
 	/**

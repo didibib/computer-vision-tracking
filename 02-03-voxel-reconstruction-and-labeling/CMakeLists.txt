@@ -19,14 +19,9 @@ set(PCH
 	"src/cvpch.cpp"
 )
 
-set(ARCBALL
-	"include/arcball.h"
-	"src/arcball.cpp"
-)
-
-set(VOXEL_CAMERA
-	"include/voxel_camera.h"
-	"src/voxel_camera.cpp"
+set(GLAD 
+"include/glad/glad.h"
+"src/glad.c"
 )
 
 set(WINDOW
@@ -49,9 +44,9 @@ set(VOXEL_RECONSTRUCTION
 	"src/voxel_reconstruction.cpp"
 )
 
-set(CUBE
-	"include/cube.h"
-	"src/cube.cpp"
+set(VOXEL_CAMERA
+	"include/voxel_camera.h"
+	"src/voxel_camera.cpp"
 )
 
 set(VOXEL_BUFFER
@@ -59,23 +54,29 @@ set(VOXEL_BUFFER
 	"src/voxel_buffer.cpp"
 )
 
-set(GLAD 
-	"include/glad/glad.h"
-	"src/glad.c"
+set(CUBE
+	"include/cube.h"
+	"src/cube.cpp"
+)
+
+set(COLOR_MODEL
+	"include/color_model.h"
+	"src/color_model.cpp"
 )
 
 add_executable (${TARGET}
 	${ROOT_FILES}
 	${UTIL}
-	${VOXEL_CAMERA}
-	${WINDOW}
-	${VOXEL_RECONSTRUCTION}
-	${SCENE_RENDERER}
-	${GLAD}
 	${PCH}
-	${CUBE}
+	${GLAD}
+	${WINDOW}
+	${SCENE_RENDERER}
 	${SCENE_CAMERA}
+	${VOXEL_RECONSTRUCTION}
+	${VOXEL_CAMERA}
 	${VOXEL_BUFFER}
+	${CUBE}
+	${COLOR_MODEL}
 )
 
 source_group(\\ FILES ${ROOT_FILES})
@@ -85,6 +86,7 @@ source_group(glad FILES ${GLAD})
 source_group(window FILES ${WINDOW})
 source_group(voxel FILES ${VOXEL_RECONSTRUCTION} ${VOXEL_CAMERA} ${VOXEL_BUFFER})
 source_group(scene FILES ${SCENE_RENDERER} ${SCENE_CAMERA} ${CUBE})
+source_group(labeling FILES ${COLOR_MODEL})
 
 # Set output directories (function found in: cmake/)
 set_target_output_directories(${TARGET})

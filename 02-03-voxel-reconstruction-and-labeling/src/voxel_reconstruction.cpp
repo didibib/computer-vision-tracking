@@ -1,7 +1,8 @@
 #include "cvpch.h"
+#include "util.h"
 #include "voxel_reconstruction.h"
 #include "voxel_camera.h"
-#include "util.h"
+#include "color_model.h"
 
 using namespace std;
 using namespace cv;
@@ -27,7 +28,7 @@ namespace team45
 		m_voxels_amount = (edge / m_step) * (edge / m_step) * (m_height / m_step);
 
 		m_toggle_camera.resize(cs.size());
-		initialize();
+		initVoxels();
 	}
 
 	/**
@@ -48,7 +49,7 @@ namespace team45
 	 * 	- LUT with a map of the entire voxelspace: point-on-cam to voxels
 	 * 	- LUT with a map of the entire voxelspace: voxel to cam points-on-cam
 	 */
-	void VoxelReconstruction::initialize()
+	void VoxelReconstruction::initVoxels()
 	{
 		// Cube dimensions from [(-m_height, m_height), (-m_height, m_height), (0, m_height)]
 		const int xL = -m_width;
@@ -191,6 +192,57 @@ namespace team45
 		cout << "done!" << endl;
 	}
 
+	void VoxelReconstruction::initColorModel()
+	{
+		const int CAMERA = 1;
+		const int FRAME = 0;
+
+		cv::Mat frame = m_cameras[CAMERA]->getVideoFrame(FRAME);
+
+		std::vector<cv::Mat> voxel_images;
+		for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
+		{
+			cv::Mat black = cv::Mat::zeros(cv::Size(frame.cols, frame.rows), frame.type());
+			voxel_images.push_back(black);
+		}
+
+		int v;
+		//#pragma omp parallel for schedule(static) private(v) shared(voxel_bitmap)
+		for (v = 0; v < m_visible_voxels.size(); v++)
+		{
+			Voxel* voxel = m_visible_voxels[v];
+			int label = m_labels.at<int>(v);
+
+			cv::Point2f p = voxel->pixelProjections[CAMERA];
+			int xOff = 1;
+			int yOff = 1;
+			for (int y = p.y - yOff; y <= p.y + yOff; y++)
+			{
+				for (int x = p.x - xOff; x <= p.x + xOff; x++)
+				{
+					cv::Point2f pOff = cv::Point2f(x, y);
+					voxel_images[label].at<Vec3b>(pOff) = frame.at<Vec3b>(pOff);
+				}
+			}
+		}
+
+		// Create histograms
+		std::vector<Histogram> histograms;
+		histograms.resize(voxel_images.size());
+
+		for (int i = 0; i < voxel_images.size(); i++)
+		{
+			Mat hsv;
+			Mat src = voxel_images[i];
+			cv::cvtColor(src, hsv, COLOR_BGR2HSV);
+			
+			histograms[i].calculate(hsv);
+			histograms[i].draw();
+
+			
+		}
+	}
+
 	/**
 	 * Count the amount of camera's each voxel in the space appears on,
 	 * if that amount equals the amount of cameras, add that voxel to the
@@ -224,6 +276,10 @@ namespace team45
 				for (int v = 0; v < iterator->second.size(); v++)
 				{
 					Voxel* voxel = iterator->second[v];
+
+					if (voxel->position.z < 700)
+						continue;
+
 					// Get the current status of the pixel at the point
 					int voxelFlag = m_cameras[c]->getForegroundImage().at<uchar>(point) == 255;
 					// Check if the voxel was on in the previous frame
@@ -255,7 +311,7 @@ namespace team45
 						else if (!voxelOnPrev && voxelOnNow)
 						{
 							// Add the voxel to visible_voxels
-							m_visible_voxels.push_back(voxel);							
+							m_visible_voxels.push_back(voxel);
 							m_visible_voxels_gpu.push_back(createVoxelGPU(*voxel));
 							voxel->visibleIndex = m_visible_voxels.size() - 1;
 						}
@@ -265,6 +321,7 @@ namespace team45
 		}
 		labelVoxels();
 		colorVoxels();
+		initColorModel();
 	}
 
 	VoxelGPU VoxelReconstruction::createVoxelGPU(Voxel const& voxel)
@@ -282,27 +339,28 @@ namespace team45
 		return vgpu;
 	}
 
-	void VoxelReconstruction::labelVoxels(int attempts)
+	void VoxelReconstruction::labelVoxels()
 	{
-		std::vector<cv::Point2f> voxelPoints;
+		std::vector<cv::Point2f> voxel_points;
 		// Reserve memory so that we can parallelize the projection to 2d
-		voxelPoints.resize(m_visible_voxels.size());
+		voxel_points.resize(m_visible_voxels.size());
 
-#pragma omp parallel for schedule(static) shared(voxelPoints, m_visible_voxels)
-		for (int v = 0; v < m_visible_voxels.size(); v++)
+		int v;
+#pragma omp parallel for schedule(static) private(v) shared(voxel_points, m_visible_voxels)
+		for (v = 0; v < m_visible_voxels.size(); v++)
 		{
 			Voxel* voxel = m_visible_voxels[v];
-			// Discard the y-coordinate
-			cv::Point2f point (voxel->position.x, voxel->position.z);
-			voxelPoints[v] = point;
+			// Discard the z-coordinate
+			cv::Point2f point(voxel->position.x, voxel->position.y);
+			voxel_points[v] = point;
 		}
-		
+
 		TermCriteria criteria(cv::TermCriteria::EPS, 0, 0);
-		int flags = cv::KMEANS_RANDOM_CENTERS;
+		int flags = cv::KMEANS_PP_CENTERS;
 
-		double error = cv::kmeans(voxelPoints, util::NR_OF_PERSONS, labels, criteria, attempts, flags, clusterCenters);
+		double compactness = cv::kmeans(voxel_points, util::K_NR_OF_PERSONS, m_labels, criteria, util::K_NR_OF_ATTEMPTS, flags, m_cluster_centers);
 
-		INFO("Clustered voxels with error: {}", error);
+		INFO("Clustered voxels with compactness: {}", compactness);
 	}
 
 	void VoxelReconstruction::colorVoxels()
@@ -324,7 +382,7 @@ namespace team45
 				cam = c;
 				closestDistance = voxel->distances[c];
 			}
-			
+
 			// For now, color the voxel using the front camera
 			colorVoxel(voxel, 1);
 			*/
@@ -338,12 +396,12 @@ namespace team45
 				{0,0,0}		// black
 			};
 
-			voxel->color = colors[labels.at<int>(v)];
+			voxel->color = colors[m_labels.at<int>(v)];
 			m_visible_voxels_gpu[v].color = voxel->color;
 		}
 	}
 
-	
+
 	bool VoxelReconstruction::colorVoxel(Voxel* voxel, int cam)
 	{
 		// Area around the pixel that we check for occlusions
