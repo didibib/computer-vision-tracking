@@ -6,7 +6,19 @@ namespace team45
 	class Histogram
 	{
 	public:
+		/*
+		 * Calculate histogram for each channel
+		 */
 		void calculate(cv::Mat& hsv);
+		
+		/*
+		 * @return d(H1, H2) using Chi-Sqr
+		 */
+		float compare(Histogram& other);
+		
+		/* 
+		 * Call after calculate()
+		 */
 		void draw();
 
 	private:

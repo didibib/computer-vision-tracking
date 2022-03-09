@@ -1,5 +1,6 @@
 #include "cvpch.h"
 #include "voxel_camera.h"
+#include "color_model.h"
 #include "util.h"
 
 using namespace std;
@@ -41,9 +42,18 @@ namespace team45
 		}
 		fs.release();
 
-		// Init background model
 		initBgModel();
+		initCameraProp();		
+		loadVideo(m_data_path + util::VIDEO_FILE);
+		initCamLoc();
+		camPtInWorld();
 
+		return true;
+	}
+
+	bool VoxelCamera::initCameraProp()
+	{
+		FileStorage fs;
 		// Read the camera properties (XML)
 		fs.open(m_data_path + util::CAM_CONFIG_FILE, FileStorage::READ);
 
@@ -51,7 +61,7 @@ namespace team45
 		if (!fs.isOpened())
 		{
 			INFO("Unable to locate: {}{}", m_data_path, util::CAM_CONFIG_FILE);
-			if (!(detIntrinsics() && detExtrinsics())) return false;
+			if (!(detIntrinsics(m_data_path + util::INTRINSICS_FILE) && detExtrinsics())) return false;
 		}
 
 		// Open it again because now we ensured that detExtrinsics has been completed  
@@ -82,35 +92,13 @@ namespace team45
 			m_cx = m_camera_matrix.at<float>(0, 2);
 			m_cy = m_camera_matrix.at<float>(1, 2);
 		}
+		return true;
+	}
 
-
-		/*
-		Mat bg_image;
-		if (util::fexists(m_data_path + util::BACKGROUND_IMAGE_FILE))
-		{
-			bg_image = imread(m_data_path + util::BACKGROUND_IMAGE_FILE);
-			if (bg_image.empty())
-			{
-				ERROR("Unable to read: {}{}", m_data_path, util::BACKGROUND_IMAGE_FILE);
-				return false;
-			}
-		}
-		else
-		{
-			WARN("Unable to find background image at: {}{}", m_data_path, util::BACKGROUND_IMAGE_FILE);
-			INFO("Making our own background image!");
-			bg_image = createBgImg();
-		}
-		assert(!bg_image.empty());
-
-		// Disect the background image in HSV-color space
-		Mat bg_hsv_im;
-		cvtColor(bg_image, bg_hsv_im, CV_BGR2HSV);
-		split(bg_hsv_im, m_bg_hsv_channels); */
-
-
+	void VoxelCamera::loadVideo(std::string path)
+	{
 		// Open the video for this camera
-		m_video = VideoCapture(m_data_path + util::VIDEO_FILE);
+		m_video = VideoCapture(path);
 		assert(m_video.isOpened());
 
 		// Assess the image size
@@ -124,23 +112,26 @@ namespace team45
 		assert(m_frame_amount > 1);
 		m_video.set(CAP_PROP_POS_AVI_RATIO, 0);  // Go back to the start
 
-		m_video.release(); //Re-open the file because m_video.set(CAP_PROP_POS_AVI_RATIO, 1) may screw it up
-		m_video = cv::VideoCapture(m_data_path + util::VIDEO_FILE);
-
-		initCamLoc();
-		camPtInWorld();
-
-		return true;
+		m_video.release(); // Re-open the file because m_video.set(CAP_PROP_POS_AVI_RATIO, 1) may screw it up
+		m_video = cv::VideoCapture(path);
 	}
 
-	bool VoxelCamera::detIntrinsics()
+	void VoxelCamera::initColorModels(std::string path)
+	{
+		if (util::fexists(path))
+		{
+
+		}
+	}
+
+	bool VoxelCamera::detIntrinsics(std::string path)
 	{
 		cv::FileStorage fs;
 
-        if (util::fexists(m_data_path + util::INTRINSICS_FILE))
+        if (util::fexists(path))
         {
-            INFO("Reading intrinics from {}", m_data_path + util::INTRINSICS_FILE);
-            fs.open(m_data_path + util::INTRINSICS_FILE, FileStorage::READ);
+            INFO("Reading intrinics from {}", path);
+            fs.open(path, FileStorage::READ);
             if (fs.isOpened())
             {
                 fs["CameraMatrix"] >> m_intrinsic;
@@ -203,7 +194,7 @@ namespace team45
 		double finalError = cv::calibrateCamera(objPoints, imgPoints, frameSize, m_intrinsic, m_dist_coeffs, m_R, m_T);
 		INFO("Calibrated camera with error: {}", finalError);
 
-		fs.open(m_data_path + util::INTRINSICS_FILE, FileStorage::WRITE);
+		fs.open(path, FileStorage::WRITE);
 		if (fs.isOpened())
 		{
 			fs << "CameraMatrix" << m_intrinsic;

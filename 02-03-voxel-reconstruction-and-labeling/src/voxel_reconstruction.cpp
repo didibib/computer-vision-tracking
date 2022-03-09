@@ -192,55 +192,15 @@ namespace team45
 		cout << "done!" << endl;
 	}
 
-	void VoxelReconstruction::initColorModel()
+	/*
+	 * The order of operations matters 
+	 */
+	void VoxelReconstruction::update()
 	{
-		const int CAMERA = 1;
-		const int FRAME = 0;
-
-		cv::Mat frame = m_cameras[CAMERA]->getVideoFrame(FRAME);
-
-		std::vector<cv::Mat> voxel_images;
-		for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
-		{
-			cv::Mat black = cv::Mat::zeros(cv::Size(frame.cols, frame.rows), frame.type());
-			voxel_images.push_back(black);
-		}
-
-		int v;
-		//#pragma omp parallel for schedule(static) private(v) shared(voxel_bitmap)
-		for (v = 0; v < m_visible_voxels.size(); v++)
-		{
-			Voxel* voxel = m_visible_voxels[v];
-			int label = m_labels.at<int>(v);
-
-			cv::Point2f p = voxel->pixelProjections[CAMERA];
-			int xOff = 1;
-			int yOff = 1;
-			for (int y = p.y - yOff; y <= p.y + yOff; y++)
-			{
-				for (int x = p.x - xOff; x <= p.x + xOff; x++)
-				{
-					cv::Point2f pOff = cv::Point2f(x, y);
-					voxel_images[label].at<Vec3b>(pOff) = frame.at<Vec3b>(pOff);
-				}
-			}
-		}
-
-		// Create histograms
-		std::vector<Histogram> histograms;
-		histograms.resize(voxel_images.size());
-
-		for (int i = 0; i < voxel_images.size(); i++)
-		{
-			Mat hsv;
-			Mat src = voxel_images[i];
-			cv::cvtColor(src, hsv, COLOR_BGR2HSV);
-			
-			histograms[i].calculate(hsv);
-			histograms[i].draw();
-
-			
-		}
+		updateVoxels();
+		labelVoxels();
+		createColorModel();
+		colorVoxels();
 	}
 
 	/**
@@ -248,7 +208,7 @@ namespace team45
 	 * if that amount equals the amount of cameras, add that voxel to the
 	 * visible_voxels vector
 	 */
-	void VoxelReconstruction::update()
+	void VoxelReconstruction::updateVoxels()
 	{
 		for (int c = 0; c < m_cameras.size(); c++)
 		{
@@ -319,24 +279,6 @@ namespace team45
 				}
 			}
 		}
-		labelVoxels();
-		colorVoxels();
-		initColorModel();
-	}
-
-	VoxelGPU VoxelReconstruction::createVoxelGPU(Voxel const& voxel)
-	{
-		VoxelGPU vgpu;
-		vgpu.color = voxel.color;
-		vgpu.position = voxel.position;
-
-		glm::vec3 scale = glm::vec3(m_step);
-		glm::mat4 model0 = glm::mat4(1.0f);
-		model0 = glm::scale(model0, scale);
-
-		vgpu.model = glm::translate(model0, voxel.position / scale);
-
-		return vgpu;
 	}
 
 	void VoxelReconstruction::labelVoxels()
@@ -361,6 +303,56 @@ namespace team45
 		double compactness = cv::kmeans(voxel_points, util::K_NR_OF_PERSONS, m_labels, criteria, util::K_NR_OF_ATTEMPTS, flags, m_cluster_centers);
 
 		INFO("Clustered voxels with compactness: {}", compactness);
+	}
+
+	void VoxelReconstruction::createColorModel()
+	{
+		// TODO make these parameters camera dependant
+		const int CAMERA = 1;
+		const int FRAME = 0;
+
+		cv::Mat frame = m_cameras[CAMERA]->getVideoFrame(FRAME);
+
+		std::vector<cv::Mat> voxel_images;
+		for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
+		{
+			cv::Mat black = cv::Mat::zeros(cv::Size(frame.cols, frame.rows), frame.type());
+			voxel_images.push_back(black);
+		}
+
+		int v;
+		//#pragma omp parallel for schedule(static) private(v) shared(voxel_bitmap)
+		for (v = 0; v < m_visible_voxels.size(); v++)
+		{
+			Voxel* voxel = m_visible_voxels[v];
+			int label = m_labels.at<int>(v);
+
+			cv::Point2f p = voxel->pixelProjections[CAMERA];
+			int xOff = 1;
+			int yOff = 1;
+			for (int y = p.y - yOff; y <= p.y + yOff; y++)
+			{
+				for (int x = p.x - xOff; x <= p.x + xOff; x++)
+				{
+					cv::Point2f pOff = cv::Point2f(x, y);
+					voxel_images[label].at<Vec3b>(pOff) = frame.at<Vec3b>(pOff);
+				}
+			}
+		}
+
+		// Create histograms
+		std::vector<Histogram> histograms;
+		histograms.resize(voxel_images.size());
+
+		for (int i = 0; i < voxel_images.size(); i++)
+		{
+			Mat hsv;
+			Mat src = voxel_images[i];
+			cv::cvtColor(src, hsv, COLOR_BGR2HSV);
+
+			histograms[i].calculate(hsv);
+			//histograms[i].draw();
+		}
 	}
 
 	void VoxelReconstruction::colorVoxels()
@@ -393,10 +385,11 @@ namespace team45
 				{1,0,0},	// red
 				{0,1,0},	// green
 				{0,0,1},	// blue
-				{0,0,0}		// black
+				{1,0,1}		// purple
 			};
 
 			voxel->color = colors[m_labels.at<int>(v)];
+
 			m_visible_voxels_gpu[v].color = voxel->color;
 		}
 	}
@@ -463,5 +456,20 @@ namespace team45
 		// The voxel is occluded, so color it black
 		voxel->color = glm::vec3(0);
 		return false;
+	}
+
+	VoxelGPU VoxelReconstruction::createVoxelGPU(Voxel const& voxel)
+	{
+		VoxelGPU vgpu;
+		vgpu.color = voxel.color;
+		vgpu.position = voxel.position;
+
+		glm::vec3 scale = glm::vec3(m_step);
+		glm::mat4 model0 = glm::mat4(1.0f);
+		model0 = glm::scale(model0, scale);
+
+		vgpu.model = glm::translate(model0, voxel.position / scale);
+
+		return vgpu;
 	}
 } /* namespace team45 */

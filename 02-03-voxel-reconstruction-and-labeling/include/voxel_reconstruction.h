@@ -33,11 +33,12 @@ namespace team45
 		int m_all_camera_flags;
 
 		void initVoxels();
-		void initColorModel();
+		void updateVoxels();
 		void labelVoxels();
 		void colorVoxels();
 		bool colorVoxel(Voxel* voxel, int cam);
 		VoxelGPU createVoxelGPU(Voxel const& voxel);
+		void createColorModel();
 
 	public:
 		VoxelReconstruction(const std::vector<VoxelCamera*>&, int width, int height, int depth, int step);
