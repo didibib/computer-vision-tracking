@@ -41,6 +41,8 @@ namespace util
 
 	static const float SCENE_CAM_SPEED = .01f;
 
+	static const int NR_OF_PERSONS = 4;
+
 	/**
 	 * Linux/Windows friendly way to check if a file exists
 	 */

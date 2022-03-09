@@ -263,7 +263,7 @@ namespace team45
 				}
 			}
 		}
-
+		labelVoxels();
 		colorVoxels();
 	}
 
@@ -282,28 +282,63 @@ namespace team45
 		return vgpu;
 	}
 
+	void VoxelReconstruction::labelVoxels(int attempts)
+	{
+		std::vector<cv::Point2f> voxelPoints;
+		// Reserve memory so that we can parallelize the projection to 2d
+		voxelPoints.resize(m_visible_voxels.size());
+
+#pragma omp parallel for schedule(static) shared(voxelPoints, m_visible_voxels)
+		for (int v = 0; v < m_visible_voxels.size(); v++)
+		{
+			Voxel* voxel = m_visible_voxels[v];
+			// Discard the y-coordinate
+			cv::Point2f point (voxel->position.x, voxel->position.z);
+			voxelPoints[v] = point;
+		}
+		
+		TermCriteria criteria(cv::TermCriteria::EPS, 0, 0);
+		int flags = cv::KMEANS_RANDOM_CENTERS;
+
+		double error = cv::kmeans(voxelPoints, util::NR_OF_PERSONS, labels, criteria, attempts, flags, clusterCenters);
+
+		INFO("Clustered voxels with error: {}", error);
+	}
+
 	void VoxelReconstruction::colorVoxels()
 	{
 		for (int v = 0; v < m_visible_voxels.size(); v++)
 		{
 			Voxel* voxel = m_visible_voxels[v];
 
+			/*
 			// Find the closest camera
 			// Can be changed to either the camera with the smallest angle,
 			// Or maybe the camera to which the normal on the voxel (if we can calculate it with it's neighbourhood) points towards?
-			//int cam;
-			//float closestDistance = 3.40281e+038;
-			//for (int c = 0; c < m_cameras.size(); c++)
-			//{
-			//	if (voxel->distances[c] >= closestDistance)
-			//		continue;
-			//	cam = c;
-			//	closestDistance = voxel->distances[c];
-			//}
+			int cam;
+			float closestDistance = 3.40281e+038;
+			for (int c = 0; c < m_cameras.size(); c++)
+			{
+				if (voxel->distances[c] >= closestDistance)
+					continue;
+				cam = c;
+				closestDistance = voxel->distances[c];
+			}
 			
 			// For now, color the voxel using the front camera
 			colorVoxel(voxel, 1);
+			*/
 
+			// Color the voxel based on it's labelling (not yet matched to a person)
+			std::vector<glm::vec3> colors
+			{
+				{1,0,0},	// red
+				{0,1,0},	// green
+				{0,0,1},	// blue
+				{0,0,0}		// black
+			};
+
+			voxel->color = colors[labels.at<int>(v)];
 			m_visible_voxels_gpu[v].color = voxel->color;
 		}
 	}

@@ -24,6 +24,8 @@ namespace team45
 		std::vector<Voxel*> m_voxels;					// Pointer vector to all voxels in the half-space
 		std::vector<Voxel*> m_visible_voxels;			// Pointer vector to all visible voxels
 		std::vector<VoxelGPU> m_visible_voxels_gpu;
+		cv::Mat labels;									// Clustering labels for each voxel
+		cv::Mat clusterCenters;							// Cluster centers for each person in the 3d voxel space
 
 		// Lookup table per camera, where a pixel (y*width + x) maps to all of the voxels that are projected onto it   
 		std::vector<std::map<int, std::vector<Voxel*>>> m_lookup;
@@ -31,6 +33,7 @@ namespace team45
 		int m_all_camera_flags;
 
 		void initialize();
+		void labelVoxels(int attempts);
 		void colorVoxels();
 		bool colorVoxel(Voxel* voxel, int cam);
 		VoxelGPU createVoxelGPU(Voxel const& voxel);
