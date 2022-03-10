@@ -28,6 +28,8 @@ namespace team45
 	private:
 		int m_id;							// ID of person
 		std::vector<float> m_hist;
-		static const int m_hist_size = 16; 
+
+		// TEMP
+		std::vector<cv::Point3f> bees;
 	};
 }

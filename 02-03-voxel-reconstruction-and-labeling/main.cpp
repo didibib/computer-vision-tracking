@@ -8,10 +8,8 @@
 using namespace team45;
 
 const int m_cam_views_amount = 4;
-const int m_voxel_width = 2048;
-const int m_voxel_height = 2048;
-const int m_voxel_depth = 2048;
-const int m_voxel_step = 128;
+const int m_voxel_height = 2048 * 2;
+const int m_voxel_step = 64;
 
 static std::vector<VoxelCamera*> m_cam_views;
 
@@ -80,7 +78,7 @@ int main(int argc, char** argv)
 	initCameras();
 
 
-	VoxelReconstruction reconstructor(m_cam_views, m_voxel_width, m_voxel_height, m_voxel_depth, m_voxel_step);
+	VoxelReconstruction reconstructor(m_cam_views, m_voxel_height, m_voxel_step);
 	Scene3DRenderer scene3d(reconstructor, m_cam_views);
 
 	Window::GetInstance().init(util::SCENE_WINDOW.c_str(), scene3d);

@@ -13,8 +13,8 @@ namespace team45
 	 * Constructor
 	 * Voxel reconstruction class
 	 */
-	VoxelReconstruction::VoxelReconstruction(const vector<VoxelCamera*>& cs, int width, int height, int depth, int step) :
-		m_cameras(cs), m_width(width), m_height(height), m_depth(depth), m_step(step)
+	VoxelReconstruction::VoxelReconstruction(const vector<VoxelCamera*>& cs, int height, int step) :
+		m_cameras(cs), m_height(height), m_step(step)
 	{
 		for (size_t c = 0; c < m_cameras.size(); ++c)
 		{
@@ -28,7 +28,18 @@ namespace team45
 		m_voxels_amount = (edge / m_step) * (edge / m_step) * (m_height / m_step);
 
 		m_toggle_camera.resize(cs.size());
+
 		initVoxels();
+
+		m_cameras[1]->setVideoFrame(m_cameras[1]->getFrameAllVisible());
+		m_cameras[1]->createForegroundImage();
+		auto& tempFrame = m_cameras[1]->getFrame();
+
+		cv::Mat frame;
+		tempFrame.convertTo(frame, CV_32F);
+		m_cameras[1]->reloadVideo();
+
+		initBins(frame);
 		initColorModels();
 	}
 
@@ -53,12 +64,12 @@ namespace team45
 	void VoxelReconstruction::initVoxels()
 	{
 		// Cube dimensions from [(-m_height, m_height), (-m_height, m_height), (0, m_height)]
-		const int xL = -m_width;
-		const int xR = m_width;
+		const int xL = -m_height;
+		const int xR = m_height;
 		const int yL = -m_height;
 		const int yR = m_height;
 		const int zL = 0;
-		const int zR = m_depth;
+		const int zR = m_height;
 		const int plane_y = (yR - yL) / m_step;
 		const int plane_x = (xR - xL) / m_step;
 		const int plane = plane_y * plane_x;
@@ -191,12 +202,50 @@ namespace team45
 
 		INFO("Voxels projected per cam {} {} {} {}", camCount[0], camCount[1], camCount[2], camCount[3]);
 
-		initColorModels();
+	}
+
+	/*
+		Initializes the bins (colors) that our Histograms (Color Models) will use.
+		We do this by clustering the pixels in the foreground image
+		And taking X amount of colors from there
+		These will be dominant / prominent colors
+	*/
+	void VoxelReconstruction::initBins(cv::Mat const& frame)
+	{
+		std::string path = util::DATA_DIR_STR + "4persons/" + util::BINS;
+		cv::FileStorage fs(path, cv::FileStorage::READ);
+		if (fs.isOpened())
+		{
+			//fs["Bins"] >> m_bins;
+			//return;
+		}
+				
+		// No file found,
+		// So determine bins for our histogram
+		// We use the cam with frontal view (cam 2, index 1)
+		cv::Mat mask = m_cameras[1]->getForegroundImage();
+		std::vector<cv::Point3f> pixels;
+		for (int y = 0; y < frame.rows; y++)
+		{
+			for (int x = 0; x < frame.cols; x++)
+				if (mask.at<uchar>(y, x) != 0)
+					pixels.push_back(frame.at<cv::Point3f>(y, x));
+		}
+
+		// Determine most prominent colors in the view
+		TermCriteria criteria(cv::TermCriteria::EPS, 0, 1);
+		int flags = cv::KMEANS_PP_CENTERS;
+		cv::Mat labels;
+		cv::kmeans(pixels, 9, labels, criteria, 3, flags, m_bins);
+
+		fs = cv::FileStorage(path, cv::FileStorage::WRITE);
+		fs << "Bins" << m_bins;
 	}
 
 	void VoxelReconstruction::initColorModels()
 	{
 		INFO("Initializing color models");
+
 		// Initialize the color models for each camera!
 		for (int c = 0; c < m_cameras.size(); c++)
 		{
@@ -212,35 +261,16 @@ namespace team45
 					m_cameras[i]->createForegroundImage();
 				}
 
-				// Determine bins for our histogram
-				auto& tempFrame = m_cameras[c]->getFrame();
-				cv::Mat frame;
-				tempFrame.convertTo(frame, CV_32F);
-				cv::Mat mask = m_cameras[c]->getForegroundImage();
-				std::vector<cv::Point3f> pixels;
-				for (int y = 0; y < frame.rows; y++)
-				{
-					for (int x = 0; x < frame.cols; x++)
-						if (mask.at<uchar>(y, x) != 0)
-							pixels.push_back(frame.at<cv::Point3f>(y, x));
-				}
-
-				// Determine most prominent colors in the view
-				TermCriteria criteria(cv::TermCriteria::EPS, 0, 1);
-				int flags = cv::KMEANS_PP_CENTERS;
-				std::vector<cv::Point3f> bins;
-				cv::Mat labels;
-				cv::kmeans(pixels, 16, labels, criteria, 1, flags, bins);
-
-				m_cameras[c]->setColorModelBins(bins);
+				m_cameras[c]->setColorModelBins(m_bins);
 
 				// Update and label the voxels
 				updateVoxels();
 				labelVoxels();
 
 				// Create the models and save them 
+
 				std::vector<Histogram*> models;
-				createColorModels(frame, c, models);
+				createColorModels(c, models);
 				m_cameras[c]->setColorModels(models);
 
 				// Now we have to make sure that each model refers to the same person!
@@ -367,8 +397,8 @@ namespace team45
 				{
 					Voxel* voxel = iterator->second[v];
 
-					if (voxel->position.z < 700)
-						continue;
+					//if (voxel->position.z < 700)
+					//	continue;
 
 					// Get the current status of the pixel at the point
 					int voxelFlag = m_cameras[c]->getForegroundImage().at<uchar>(point) == 255;
@@ -452,10 +482,15 @@ namespace team45
 		}
 	}
 
-	void VoxelReconstruction::createColorModels(cv::Mat& frame, int cam, std::vector<Histogram*>& histograms)
+	void VoxelReconstruction::createColorModels(int cam, std::vector<Histogram*>& histograms)
 	{
 		std::vector<std::vector<Point3f>> pixelsPerPerson;
 		pixelsPerPerson.resize(util::K_NR_OF_PERSONS);
+
+		auto& tempFrame = m_cameras[cam]->getFrame();
+		cv::imshow(util::get_name_rand("Frame of cam", cam), tempFrame);
+		cv::Mat frame;
+		tempFrame.convertTo(frame, CV_32F);
 
 		int v;
 		//#pragma omp parallel for schedule(static) private(v) shared(voxel_bitmap)
@@ -467,8 +502,8 @@ namespace team45
 			int label = m_labels.at<int>(v);
 
 			cv::Point2f p = voxel->pixelProjections[cam];
-			int xOff = 1;
-			int yOff = 1;
+			int xOff = 7;
+			int yOff = 7;
 			for (int y = p.y - yOff; y <= p.y + yOff; y++)
 			{
 				for (int x = p.x - xOff; x <= p.x + xOff; x++)
