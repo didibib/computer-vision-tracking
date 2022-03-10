@@ -8,7 +8,7 @@ namespace team45
 		/*
 		 * Calculate histogram for each channel
 		 */
-		void calculate(cv::Mat& hsv);
+		void calculate(std::vector<cv::Point3f> const& colors, std::vector<cv::Point3f>const& bins);
 		
 		/*
 		 * @return d(H1, H2) using Chi-Sqr
@@ -27,9 +27,7 @@ namespace team45
 
 	private:
 		int m_id;							// ID of person
-		cv::Mat m_H_hist;
-		cv::Mat m_S_hist;
-		cv::Mat m_V_hist;
+		std::vector<float> m_hist;
 		static const int m_hist_size = 16; 
 	};
 }

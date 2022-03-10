@@ -39,7 +39,7 @@ namespace team45
 		void colorVoxels();
 		bool colorVoxel(Voxel* voxel, int cam);
 		VoxelGPU createVoxelGPU(Voxel const& voxel);
-		void createColorModels(int cam, std::vector<Histogram*>&);
+		void createColorModels(cv::Mat& frame, int cam, std::vector<Histogram*>&);
 		void matchClusters();
 		void initColorModels();
 		void matchModels(std::vector<Histogram*>&, std::vector<Histogram*>&);

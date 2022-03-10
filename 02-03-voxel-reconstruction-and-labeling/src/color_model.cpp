@@ -5,67 +5,72 @@
 using namespace cv;
 namespace team45
 {
-	void Histogram::calculate(cv::Mat& hsv)
+	void Histogram::calculate(std::vector<cv::Point3f>const& colors, std::vector<cv::Point3f> const& bins)
 	{
-		std::vector<cv::Mat> hsv_planes;
-		// Split image by channel
-		cv::split(hsv, hsv_planes);
+		m_hist.resize(bins.size());
 
-		// Create mask
-		cv::Mat mask, tmp;
-		cv::cvtColor(hsv, tmp, cv::COLOR_BGR2GRAY);
-		cv::threshold(tmp, mask, 1, 255, cv::THRESH_BINARY);
-
-		// Calculate histogram
-		static const float _hrange[] = { 0, 180 };
-		static const float _svrange[] = { 0, 256 };
-		static const float* hrange[] = { _hrange };
-		static const float* svrange[] = { _svrange };
-
-		cv::calcHist(&hsv_planes[0], 1, 0, mask, m_H_hist, 1, &m_hist_size, hrange);
-		cv::calcHist(&hsv_planes[1], 1, 0, mask, m_S_hist, 1, &m_hist_size, svrange);
-		cv::calcHist(&hsv_planes[2], 1, 0, mask, m_V_hist, 1, &m_hist_size, svrange);
-
-		// Normalize the result to [ 0, hist_image.rows ]
-		cv::normalize(m_H_hist, m_H_hist, 0, 1, NORM_MINMAX, -1, Mat());
-		cv::normalize(m_S_hist, m_S_hist, 0, 1, NORM_MINMAX, -1, Mat());
-		cv::normalize(m_V_hist, m_V_hist, 0, 1, NORM_MINMAX, -1, Mat());
+		// For each color that we find, calculate the distance to each bin
+		for(int i = 0; i < colors.size(); i++)
+		{
+			double shortestDist = DBL_MAX;
+			int closestBin = 0;
+			for(int b = 0; b < bins.size(); b++)
+			{
+				cv::Vec3f v = colors[i] - bins[b];
+				// Is actually |v|^2, but does not matter
+				double distance = v.dot(v);
+				if(distance < shortestDist)
+				{
+					closestBin = b;
+					shortestDist = distance;
+				}
+			}
+			m_hist[closestBin]++;
+		}
+		
+		// Normalize our histogram by dividing every element by the maximum element;
+		float maxElem = -1;
+		for(int b = 0; b < m_hist.size(); b++)
+		{
+			if(m_hist[b] > maxElem)
+			{
+				maxElem = m_hist[b];
+			}
+		}		
+		
+		for(int b = 0; b < m_hist.size(); b++)
+			m_hist[b] /= maxElem;
 	}
 
 	float Histogram::compare(Histogram& other)
 	{
 		float d = 0;
-		d += cv::compareHist(m_H_hist, other.m_H_hist, HISTCMP_CORREL);
-		d += cv::compareHist(m_S_hist, other.m_S_hist, HISTCMP_CORREL);
-		d += cv::compareHist(m_V_hist, other.m_V_hist, HISTCMP_CORREL);
+
+		assert(m_hist.size() == other.m_hist.size());
+
+		// Chi-Square dist
+		for(int b = 0; b < m_hist.size(); b++)
+		{
+			float diff = (m_hist[b] - other.m_hist[b]);
+			d += diff * diff / (float)m_hist[b];
+		}
+
 		return d;
 	}
 
 	// https://docs.opencv.org/2.4/doc/tutorials/imgproc/histograms/histogram_calculation/histogram_calculation.html
 	void Histogram::draw()
 	{
-		// Draw the histograms for H, S, V
+		//// Draw the histograms for H, S, V
 		int hist_w = 512; int hist_h = 400;
 		int bin_w = cvRound((double)hist_w / m_hist_size);
 		Mat hist_image(hist_h, hist_w, CV_8UC3, Scalar(0, 0, 0));
 
-		// Normalize the result to [ 0, hist_image.rows ]
-		normalize(m_H_hist, m_H_hist, 0, hist_image.rows, NORM_MINMAX, -1, Mat());
-		normalize(m_S_hist, m_S_hist, 0, hist_image.rows, NORM_MINMAX, -1, Mat());
-		normalize(m_V_hist, m_V_hist, 0, hist_image.rows, NORM_MINMAX, -1, Mat());
-
-		// Draw for each channel
 		for (int i = 1; i < m_hist_size; i++)
 		{
-			line(hist_image, Point(bin_w * (i - 1), hist_h - cvRound(m_H_hist.at<float>(i - 1))),
-				Point(bin_w * (i), hist_h - cvRound(m_H_hist.at<float>(i))),
+			line(hist_image, Point(bin_w * (i - 1), hist_h - m_hist[i-1]*hist_h),
+				Point(bin_w * (i), hist_h - m_hist[i]*hist_h),
 				Scalar(255, 0, 0), 2, 8, 0);
-			line(hist_image, Point(bin_w * (i - 1), hist_h - cvRound(m_S_hist.at<float>(i - 1))),
-				Point(bin_w * (i), hist_h - cvRound(m_S_hist.at<float>(i))),
-				Scalar(0, 255, 0), 2, 8, 0);
-			line(hist_image, Point(bin_w * (i - 1), hist_h - cvRound(m_V_hist.at<float>(i - 1))),
-				Point(bin_w * (i), hist_h - cvRound(m_V_hist.at<float>(i))),
-				Scalar(0, 0, 255), 2, 8, 0);
 		}
 
 		// Display
@@ -79,18 +84,14 @@ namespace team45
 	{
 		fs << nodename << "{";
 		fs << "Id" << m_id;
-		fs << "H_Hist" << m_H_hist;
-		fs << "S_Hist" << m_S_hist;
-		fs << "V_Hist" << m_V_hist;
+		fs << "Hist" << m_hist;
 		fs << "}";
 	}
 
 	void Histogram::load(cv::FileNode fn)
 	{
 		fn["Id"]>> m_id;
-		fn["H_Hist"] >> m_H_hist;
-		fn["S_Hist"] >> m_S_hist;
-		fn["V_Hist"] >> m_V_hist;
+		fn["Hist"] >> m_hist;
 	}
 }
 

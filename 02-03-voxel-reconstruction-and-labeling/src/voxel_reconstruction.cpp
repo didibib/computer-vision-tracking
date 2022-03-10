@@ -200,17 +200,39 @@ namespace team45
 		// Initialize the color models for each camera!
 		for (int c = 0; c < m_cameras.size(); c++)
 		{
-			if (!m_cameras[c]->loadColorModels() || true)
+			if (/*!m_cameras[c]->loadColorModels()*/ true)
 			{
 				// We need to create a new color model and save it
-				int frame = m_cameras[c]->getFrameAllVisible();
+				int frameNr = m_cameras[c]->getFrameAllVisible();
 				for (int i = 0; i < m_cameras.size(); i++)
 				{
 					// Set it to the current frame
 					// Create a foreground mask
-					m_cameras[i]->setVideoFrame(frame);
+					m_cameras[i]->setVideoFrame(frameNr);
 					m_cameras[i]->createForegroundImage();
 				}
+
+				// Determine bins for our histogram
+				auto& tempFrame = m_cameras[c]->getFrame();
+				cv::Mat frame;
+				tempFrame.convertTo(frame, CV_32F);
+				cv::Mat mask = m_cameras[c]->getForegroundImage();
+				std::vector<cv::Point3f> pixels;
+				for (int y = 0; y < frame.rows; y++)
+				{
+					for (int x = 0; x < frame.cols; x++)
+						if (mask.at<uchar>(y, x) != 0)
+							pixels.push_back(frame.at<cv::Point3f>(y, x));
+				}
+
+				// Determine most prominent colors in the view
+				TermCriteria criteria(cv::TermCriteria::EPS, 0, 1);
+				int flags = cv::KMEANS_PP_CENTERS;
+				std::vector<cv::Point3f> bins;
+				cv::Mat labels;
+				cv::kmeans(pixels, 16, labels, criteria, 1, flags, bins);
+
+				m_cameras[c]->setColorModelBins(bins);
 
 				// Update and label the voxels
 				updateVoxels();
@@ -218,7 +240,7 @@ namespace team45
 
 				// Create the models and save them 
 				std::vector<Histogram*> models;
-				createColorModels(c, models);
+				createColorModels(frame, c, models);
 				m_cameras[c]->setColorModels(models);
 
 				// Now we have to make sure that each model refers to the same person!
@@ -298,7 +320,6 @@ namespace team45
 			m1[i]->draw();
 			m2[i]->draw();
 		}
-		cv::destroyAllWindows();
 	}
 
 	/**
@@ -431,19 +452,15 @@ namespace team45
 		}
 	}
 
-	void VoxelReconstruction::createColorModels(int cam, std::vector<Histogram*>& histograms)
+	void VoxelReconstruction::createColorModels(cv::Mat& frame, int cam, std::vector<Histogram*>& histograms)
 	{
-		cv::Mat frame = m_cameras[cam]->getFrame();
-
-		std::vector<cv::Mat> voxel_images;
-		for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
-		{
-			cv::Mat black = cv::Mat::zeros(cv::Size(frame.cols, frame.rows), frame.type());
-			voxel_images.push_back(black);
-		}
+		std::vector<std::vector<Point3f>> pixelsPerPerson;
+		pixelsPerPerson.resize(util::K_NR_OF_PERSONS);
 
 		int v;
 		//#pragma omp parallel for schedule(static) private(v) shared(voxel_bitmap)
+
+		// For every visible voxel, get the color and at it to the corresponding label
 		for (v = 0; v < m_visible_voxels.size(); v++)
 		{
 			Voxel* voxel = m_visible_voxels[v];
@@ -456,21 +473,18 @@ namespace team45
 			{
 				for (int x = p.x - xOff; x <= p.x + xOff; x++)
 				{
+					// TODO Check for occlusion
 					cv::Point2f pOff = cv::Point2f(x, y);
-					voxel_images[label].at<Vec3b>(pOff) = frame.at<Vec3b>(pOff);
+					pixelsPerPerson[label].push_back(frame.at<Point3f>(pOff));
 				}
 			}
 		}
 
-		for (int i = 0; i < voxel_images.size(); i++)
+		for (int i = 0; i < pixelsPerPerson.size(); i++)
 		{
-			Mat hsv;
-			Mat src = voxel_images[i];
-			cv::cvtColor(src, hsv, COLOR_BGR2HSV);
 			Histogram* h = new Histogram();
-			h->calculate(hsv);
+			h->calculate(pixelsPerPerson[i], m_cameras[cam]->getColorModelBins());
 			histograms.push_back(h);
-			//histograms[i].draw();
 		}
 	}
 

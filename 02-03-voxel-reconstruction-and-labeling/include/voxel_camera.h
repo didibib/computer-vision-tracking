@@ -17,6 +17,7 @@ namespace team45
 		std::string m_video_path;							// Path to the currently opened video; 
 
 		std::vector<Histogram*> m_histograms;				// Histogram per person
+		std::vector<cv::Point3f> m_histogram_bins;				// Histogram bins
 		int m_frame_all_visible;							// Frame where all four persons are visible and seperated
 
 		// Background
@@ -140,6 +141,16 @@ namespace team45
 		void setColorModels(std::vector<Histogram*>& hs)
 		{
 			m_histograms = hs;
+		}
+
+		std::vector<cv::Point3f> const& getColorModelBins() const
+		{
+			return m_histogram_bins;
+		}
+
+		void setColorModelBins(std::vector<cv::Point3f>& bins)
+		{
+			m_histogram_bins = bins;
 		}
 	};
 

@@ -274,6 +274,7 @@ namespace team45
 	void VoxelCamera::saveColorModels(std::vector<Histogram*>& color_models)
 	{
 		cv::FileStorage fs(m_data_path + util::COLOR_MODELS, cv::FileStorage::WRITE);
+		fs << "Bins" << m_histogram_bins;
 		fs << "Entries" << "{";
 		for (int i = 0; i < color_models.size(); i++)
 		{
@@ -285,17 +286,16 @@ namespace team45
 
 	bool VoxelCamera::loadColorModels()
 	{
-		/*if (!util::fexists(m_data_path + util::COLOR_MODELS))
-			return false;*/
-
 		cv::FileStorage fs(m_data_path + util::COLOR_MODELS, cv::FileStorage::READ);
 		if (fs.isOpened())
 		{
 			INFO("Found color model");
-			cv::FileNode person_entries = fs["Entries"];
-			cv::FileNodeIterator it = person_entries.begin(), it_end = person_entries.end();
+			fs["Bins"] >> m_histogram_bins;
+
+			cv::FileNode personEntries = fs["Entries"];
+			cv::FileNodeIterator it = personEntries.begin(), itEnd = personEntries.end();
 			int idx = 0;
-			for (; it != it_end; ++it, idx++)
+			for (; it != itEnd; ++it, idx++)
 			{
 				Histogram* h = new Histogram();
 				h->load(*it);
