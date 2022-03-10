@@ -1,5 +1,6 @@
 #include "cvpch.h"
 #include "color_model.h"
+#include "util.h"
 
 using namespace cv;
 namespace team45
@@ -12,7 +13,7 @@ namespace team45
 
 		// Create mask
 		cv::Mat mask, tmp;
-		cv::cvtColor(hsv, tmp, COLOR_BGR2GRAY);
+		cv::cvtColor(hsv, tmp, cv::COLOR_BGR2GRAY);
 		cv::threshold(tmp, mask, 1, 255, cv::THRESH_BINARY);
 
 		// Calculate histogram
@@ -24,14 +25,19 @@ namespace team45
 		cv::calcHist(&hsv_planes[0], 1, 0, mask, m_H_hist, 1, &m_hist_size, hrange);
 		cv::calcHist(&hsv_planes[1], 1, 0, mask, m_S_hist, 1, &m_hist_size, svrange);
 		cv::calcHist(&hsv_planes[2], 1, 0, mask, m_V_hist, 1, &m_hist_size, svrange);
+
+		// Normalize the result to [ 0, hist_image.rows ]
+		cv::normalize(m_H_hist, m_H_hist, 0, 1, NORM_MINMAX, -1, Mat());
+		cv::normalize(m_S_hist, m_S_hist, 0, 1, NORM_MINMAX, -1, Mat());
+		cv::normalize(m_V_hist, m_V_hist, 0, 1, NORM_MINMAX, -1, Mat());
 	}
 
 	float Histogram::compare(Histogram& other)
 	{
 		float d = 0;
-		d += cv::compareHist(m_H_hist, other.m_H_hist, HISTCMP_CHISQR);
-		d += cv::compareHist(m_S_hist, other.m_S_hist, HISTCMP_CHISQR);
-		d += cv::compareHist(m_V_hist, other.m_V_hist, HISTCMP_CHISQR);
+		d += cv::compareHist(m_H_hist, other.m_H_hist, HISTCMP_CORREL);
+		d += cv::compareHist(m_S_hist, other.m_S_hist, HISTCMP_CORREL);
+		d += cv::compareHist(m_V_hist, other.m_V_hist, HISTCMP_CORREL);
 		return d;
 	}
 
@@ -63,10 +69,28 @@ namespace team45
 		}
 
 		// Display
-		namedWindow("Histogram", CV_WINDOW_AUTOSIZE);
-		imshow("Histogram", hist_image);
-
+		std::ostringstream stream;
+		stream << m_id << " R " << util::random::uint();
+		imshow(stream.str(), hist_image);
 		waitKey();
+	}
+
+	void Histogram::save(cv::FileStorage fs, std::string nodename)
+	{
+		fs << nodename << "{";
+		fs << "Id" << m_id;
+		fs << "H_Hist" << m_H_hist;
+		fs << "S_Hist" << m_S_hist;
+		fs << "V_Hist" << m_V_hist;
+		fs << "}";
+	}
+
+	void Histogram::load(cv::FileNode fn)
+	{
+		fn["Id"]>> m_id;
+		fn["H_Hist"] >> m_H_hist;
+		fn["S_Hist"] >> m_S_hist;
+		fn["V_Hist"] >> m_V_hist;
 	}
 }
 

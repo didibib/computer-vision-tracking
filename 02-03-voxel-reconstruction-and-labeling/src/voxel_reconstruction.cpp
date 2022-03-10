@@ -29,6 +29,7 @@ namespace team45
 
 		m_toggle_camera.resize(cs.size());
 		initVoxels();
+		initColorModels();
 	}
 
 	/**
@@ -189,17 +190,125 @@ namespace team45
 		}
 
 		INFO("Voxels projected per cam {} {} {} {}", camCount[0], camCount[1], camCount[2], camCount[3]);
-		cout << "done!" << endl;
+
+		initColorModels();
+	}
+
+	void VoxelReconstruction::initColorModels()
+	{
+		INFO("Initializing color models");
+		// Initialize the color models for each camera!
+		for (int c = 0; c < m_cameras.size(); c++)
+		{
+			if (!m_cameras[c]->loadColorModels() || true)
+			{
+				// We need to create a new color model and save it
+				int frame = m_cameras[c]->getFrameAllVisible();
+				for (int i = 0; i < m_cameras.size(); i++)
+				{
+					// Set it to the current frame
+					// Create a foreground mask
+					m_cameras[i]->setVideoFrame(frame);
+					m_cameras[i]->createForegroundImage();
+				}
+
+				// Update and label the voxels
+				updateVoxels();
+				labelVoxels();
+
+				// Create the models and save them 
+				std::vector<Histogram*> models;
+				createColorModels(c, models);
+				m_cameras[c]->setColorModels(models);
+
+				// Now we have to make sure that each model refers to the same person!
+				// We do this by comparing all different permutations of each color model from a camera with the first camera
+
+				auto baseModels = m_cameras[0]->getColorModels();
+
+				if (c == 0)
+				{
+					// First camera defines person Ids
+					for (int i = 0; i < baseModels.size(); i++)
+						baseModels[i]->setId(i);
+					m_cameras[c]->saveColorModels(baseModels);
+				}
+				else
+				{
+					auto currModels = m_cameras[c]->getColorModels();
+					matchModels(baseModels, currModels);
+					m_cameras[c]->saveColorModels(currModels);
+				}
+
+				// Reload the video from all the cams because of some weird issue with video.set?
+				for (int i = 0; i < m_cameras.size(); i++)
+					m_cameras[i]->reloadVideo();
+			}
+		}
 	}
 
 	/*
-	 * The order of operations matters 
+		Changes m2, so that each model (person) in m2 matches the correct model in m1.
+		So m1 already knows which model is which person, and m2 uses the correlation between the models to estimate it's own matches
+	*/
+	void VoxelReconstruction::matchModels(std::vector<Histogram*>& m1, std::vector<Histogram*>& m2)
+	{
+		// Generate permutations
+		std::vector<std::vector<int>> perms = util::permutations(util::K_NR_OF_PERSONS);
+
+		// Scores for each permutation
+		std::vector<float> scores;
+
+		// Per permutation compare baseModels to other camera models
+		for (int p = 0; p < perms.size(); p++)
+		{
+			std::vector<int> permutation = perms[p];
+			float score = 0;
+
+			for (int i = 0; i < m1.size(); i++)
+			{
+				score += m1[i]->compare(*m2[permutation[i]]);
+			}
+			scores.push_back(score);
+		}
+
+		// Find the best score, which is the lowest distance
+		int index = 0;
+		float best = FLT_MAX;
+		for (int s = 0; s < scores.size(); s++)
+			if (scores[s] < best)
+			{
+				best = scores[s];
+				index = s;
+			}
+
+		// Use the index to set the id's
+		std::vector<int> bestPermutation = perms[index];
+		for (int i = 0; i < bestPermutation.size(); i++)
+			m2[i]->setId(bestPermutation[i]);
+
+		// Sort on id
+		std::sort(m2.begin(), m2.end(),
+			[](Histogram* a, Histogram* b) {
+				return a->getId() < b->getId();
+			});
+
+		for (int i = 0; i < 4; i++)
+		{
+			m1[i]->draw();
+			m2[i]->draw();
+		}
+		cv::destroyAllWindows();
+	}
+
+	/**
+	 * The order of operations matters
 	 */
 	void VoxelReconstruction::update()
 	{
 		updateVoxels();
 		labelVoxels();
-		createColorModel();
+		//matchClusters();
 		colorVoxels();
 	}
 
@@ -305,13 +414,26 @@ namespace team45
 		INFO("Clustered voxels with compactness: {}", compactness);
 	}
 
-	void VoxelReconstruction::createColorModel()
+	/*
+		Match each of the voxel clusters with a color model.
+		To do this, we first need to create a model for each view.
+		Then compare all the views and use an appropriate scale to compare them.
+	*/
+	void VoxelReconstruction::matchClusters()
 	{
-		// TODO make these parameters camera dependant
-		const int CAMERA = 1;
-		const int FRAME = 0;
+		// A color model, per view, per person
+		std::vector<std::vector<Histogram*>> models;
+		for (int c = 0; c < m_cameras.size(); c++)
+		{
+			// Create color model for this camera
+			// So we can compare it to the offline models  
+			//models.push_back(createColorModels(c));
+		}
+	}
 
-		cv::Mat frame = m_cameras[CAMERA]->getVideoFrame(FRAME);
+	void VoxelReconstruction::createColorModels(int cam, std::vector<Histogram*>& histograms)
+	{
+		cv::Mat frame = m_cameras[cam]->getFrame();
 
 		std::vector<cv::Mat> voxel_images;
 		for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
@@ -327,7 +449,7 @@ namespace team45
 			Voxel* voxel = m_visible_voxels[v];
 			int label = m_labels.at<int>(v);
 
-			cv::Point2f p = voxel->pixelProjections[CAMERA];
+			cv::Point2f p = voxel->pixelProjections[cam];
 			int xOff = 1;
 			int yOff = 1;
 			for (int y = p.y - yOff; y <= p.y + yOff; y++)
@@ -340,17 +462,14 @@ namespace team45
 			}
 		}
 
-		// Create histograms
-		std::vector<Histogram> histograms;
-		histograms.resize(voxel_images.size());
-
 		for (int i = 0; i < voxel_images.size(); i++)
 		{
 			Mat hsv;
 			Mat src = voxel_images[i];
 			cv::cvtColor(src, hsv, COLOR_BGR2HSV);
-
-			histograms[i].calculate(hsv);
+			Histogram* h = new Histogram();
+			h->calculate(hsv);
+			histograms.push_back(h);
 			//histograms[i].draw();
 		}
 	}
@@ -393,7 +512,6 @@ namespace team45
 			m_visible_voxels_gpu[v].color = voxel->color;
 		}
 	}
-
 
 	bool VoxelReconstruction::colorVoxel(Voxel* voxel, int cam)
 	{

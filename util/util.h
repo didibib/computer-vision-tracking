@@ -33,8 +33,11 @@ namespace util
 	static const std::string CHECKERBOARD_VIDEO = "checkerboard.avi";
 	static const std::string CHECKERBOARD_CORNERS = "boardcorners.xml";
 	static const std::string VIDEO_FILE = "video.avi";
-	static const std::string BACKGROUND_VIDEO_FILE = "background.avi";
-	static const std::string CAM_CONFIG_FILE = "config.xml";
+	static const std::string BACKGROUND_VIDEO = "background.avi";
+	static const std::string CAM_CONFIG = "config.xml";
+	static const std::string COLOR_MODELS = "color_models.xml";
+	static const std::string SETTINGS = "settings.xml";
+	
 
 	static const int CALIB_MAX_NR_FRAMES = 40;
 	static const int CALIB_LOCAL_FRAMES = 3;
@@ -113,6 +116,41 @@ namespace util
 		}
 		is.read((char*)&obj, sizeof(obj));
 		is.close();
+	}
+
+	// https://www.cplusplus.com/reference/algorithm/next_permutation/
+	static std::vector<std::vector<int>> permutations(int n)
+	{
+		// Permutations so far
+		std::vector<std::vector<int>> pmts;
+
+		// Initial combinations
+		std::vector<int> ks;
+		for (int i = 0; i < n; i++)
+			ks.push_back(i);
+
+		pmts.push_back(ks);
+		while (std::next_permutation(ks.begin(), ks.end()))
+		{
+			pmts.push_back(ks);
+		}
+
+		return pmts;
+	}
+
+	namespace random
+	{
+		// Deterministic rng
+		static unsigned int seed = 0x12345678;
+		inline unsigned int uint()
+		{
+			seed ^= seed << 13;
+			seed ^= seed >> 17;
+			seed ^= seed << 5;
+			return seed;
+		}
+		inline float f() { return uint() * 2.3283064365387e-10f; }
+		inline float range(float range) { return f() * range; }
 	}
 
 } /* namespace team45 */

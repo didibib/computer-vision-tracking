@@ -14,9 +14,10 @@ namespace team45
 
 		const std::string m_data_path;						// Path to data directory
 		const int m_id;										// Camera ID
+		std::string m_video_path;							// Path to the currently opened video; 
 
 		std::vector<Histogram*> m_histograms;				// Histogram per person
-		int m_target_frame;									// Frame where all four persons are visible and seperated
+		int m_frame_all_visible;							// Frame where all four persons are visible and seperated
 
 		// Background
 		cv::Ptr<cv::BackgroundSubtractorMOG2> m_bg_model;
@@ -51,10 +52,10 @@ namespace team45
 
 		bool initCameraProp();
 		void loadVideo(std::string path);
-		void initColorModels(std::string path);
-		bool detIntrinsics(std::string path);
+		bool detIntrinsics();
 		bool findCbCorners(cv::Mat& frame, std::vector<cv::Point3f>& objPoints, std::vector<cv::Point2f>& imgPoints);
 		void initBgModel();
+
 		static void onMouse(int, int, int, int, void*);
 		void initCamLoc();
 		inline void camPtInWorld();
@@ -67,10 +68,13 @@ namespace team45
 		virtual ~VoxelCamera();
 
 		bool initialize();
+		void saveColorModels(std::vector<Histogram*>& color_models);
+		bool loadColorModels();
 
 		cv::Mat& advanceVideoFrame();
 		cv::Mat& getVideoFrame(int);
 		void setVideoFrame(int);
+		void reloadVideo();
 
 		bool detExtrinsics();
 		void createForegroundImage();
@@ -86,6 +90,11 @@ namespace team45
 		long getFramesAmount() const
 		{
 			return m_frame_amount;
+		}
+
+		int const& getFrameAllVisible() const
+		{
+			return m_frame_all_visible;
 		}
 
 		const cv::Size& getSize() const
@@ -121,6 +130,16 @@ namespace team45
 		const std::vector<cv::Point3f>& getCameraPlane() const
 		{
 			return m_camera_plane;
+		}
+
+		std::vector<Histogram*>& getColorModels()
+		{
+			return m_histograms;
+		}
+
+		void setColorModels(std::vector<Histogram*>& hs)
+		{
+			m_histograms = hs;
 		}
 	};
 

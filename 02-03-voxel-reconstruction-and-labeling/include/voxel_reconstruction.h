@@ -5,6 +5,7 @@
 namespace team45
 {
 	class VoxelCamera;
+	class Histogram;
 
 	class VoxelReconstruction
 	{
@@ -38,7 +39,10 @@ namespace team45
 		void colorVoxels();
 		bool colorVoxel(Voxel* voxel, int cam);
 		VoxelGPU createVoxelGPU(Voxel const& voxel);
-		void createColorModel();
+		void createColorModels(int cam, std::vector<Histogram*>&);
+		void matchClusters();
+		void initColorModels();
+		void matchModels(std::vector<Histogram*>&, std::vector<Histogram*>&);
 
 	public:
 		VoxelReconstruction(const std::vector<VoxelCamera*>&, int width, int height, int depth, int step);

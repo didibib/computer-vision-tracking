@@ -50,7 +50,7 @@ void getCameraData()
 		 * a checkerboard video to create the extrinsics from
 		 */
 		assert(
-			(!util::fexists(full_cam_path.str() + util::CAM_CONFIG_FILE) ?
+			(!util::fexists(full_cam_path.str() + util::CAM_CONFIG) ?
 				util::fexists(full_cam_path.str() + util::INTRINSICS_FILE) &&
 				util::fexists(full_cam_path.str() + util::CHECKERBOARD_VIDEO)
 				: true)

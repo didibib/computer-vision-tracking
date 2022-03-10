@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<opencv_storage>
+<Entries>
+  <Person>
+    <Id>0</Id>
+    <H_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 0. 0. 1.08108110e+01 3.02702732e+01 8.86486511e+01
+        9.08108139e+01 1.92432434e+02 400. 2.91891907e+02 8.86486511e+01
+        6.48648682e+01 0. 0. 0. 0.</data></H_Hist>
+    <S_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        5.41666679e+01 1.62500000e+02 1.95833344e+02 400. 3.12500000e+02
+        1.54166672e+02 225. 3.04166687e+02 2.83333344e+02 1.58333344e+02
+        1.20833336e+02 4.16666679e+01 1.25000000e+01 0. 0. 0.</data></S_Hist>
+    <V_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 3.93442612e+01 1.61748627e+02 400. 1.98907104e+02
+        8.52459030e+01 8.30601120e+01 1.26775955e+02 1.00546440e+02
+        3.27868843e+01 2.40437145e+01 1.74863377e+01 2.18579221e+00 0.
+        0. 0.</data></V_Hist></Person>
+  <Person>
+    <Id>1</Id>
+    <H_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 0. 0. 0. 0. 0. 0. 8.27586212e+01 400. 7.58620682e+01 0. 0. 0.
+        0. 0. 0.</data></H_Hist>
+    <S_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 0. 1.20000008e+02 0. 0. 1.20000008e+02 400. 280. 260. 40.
+        100. 140. 40. 6.00000038e+01 40. 20.</data></S_Hist>
+    <V_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 5.21739120e+01 400. 6.95652161e+01 5.21739120e+01
+        3.47826080e+01 3.47826080e+01 3.47826080e+01 2.60869560e+01 0.
+        0. 0. 0. 0. 0. 0.</data></V_Hist></Person>
+  <Person>
+    <Id>2</Id>
+    <H_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 0. 6.59340715e+00 3.29670358e+00 2.19780231e+00 0. 0.
+        2.19780216e+01 1.49450546e+02 400. 0. 0. 0. 0. 0. 0.</data></H_Hist>
+    <S_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 1.98198204e+01 9.00900936e+00 1.62162170e+01 9.00900936e+00
+        7.20720720e+00 7.74774780e+01 400. 2.75675690e+02 8.10810776e+01
+        3.78378372e+01 1.98198204e+01 3.60360360e+00 0. 0. 0.</data></S_Hist>
+    <V_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 0. 132. 100. 180. 2.39999985e+02 400. 336. 384. 200. 76. 52.
+        24. 0. 0. 0.</data></V_Hist></Person>
+  <Person>
+    <Id>3</Id>
+    <H_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 0. 0. 0. 0. 0. 1.20481932e+00 2.65060272e+01 2.83132538e+02
+        400. 2.40963864e+00 2.40963864e+00 0. 0. 0. 0.</data></H_Hist>
+    <S_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 2.16216221e+01 3.24324341e+01 3.06306305e+01 5.58558578e+01
+        4.14414444e+01 2.41441437e+02 400. 1.26126137e+02 6.84684677e+01
+        2.52252254e+01 1.98198204e+01 5.40540552e+00 0. 1.80180180e+00
+        0.</data></S_Hist>
+    <V_Hist type_id="opencv-matrix">
+      <rows>16</rows>
+      <cols>1</cols>
+      <dt>f</dt>
+      <data>
+        0. 400. 2.47491638e+02 5.75250816e+01 3.87959862e+01
+        2.40802670e+01 9.36454868e+00 1.33779263e+00 0. 0.
+        1.33779263e+00 4.01337767e+00 1.07023411e+01 0. 0. 0.</data></V_Hist></Person></Entries>
+</opencv_storage>

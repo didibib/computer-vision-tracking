@@ -23,6 +23,8 @@ namespace team45
 
 	VoxelCamera::~VoxelCamera()
 	{
+		for (auto& p : m_histograms)
+			delete p;
 	}
 
 	/**
@@ -42,8 +44,16 @@ namespace team45
 		}
 		fs.release();
 
+		// Read the frame where all persons are visible
+		fs.open(m_data_path + util::SETTINGS, FileStorage::READ);
+		if (fs.isOpened())
+		{
+			fs["FrameAllVisible"] >> m_frame_all_visible;
+		}
+		fs.release();
+
 		initBgModel();
-		initCameraProp();		
+		initCameraProp();
 		loadVideo(m_data_path + util::VIDEO_FILE);
 		initCamLoc();
 		camPtInWorld();
@@ -55,17 +65,17 @@ namespace team45
 	{
 		FileStorage fs;
 		// Read the camera properties (XML)
-		fs.open(m_data_path + util::CAM_CONFIG_FILE, FileStorage::READ);
+		fs.open(m_data_path + util::CAM_CONFIG, FileStorage::READ);
 
 		// If the config doesn't exist, calibrate the camera
 		if (!fs.isOpened())
 		{
-			INFO("Unable to locate: {}{}", m_data_path, util::CAM_CONFIG_FILE);
-			if (!(detIntrinsics(m_data_path + util::INTRINSICS_FILE) && detExtrinsics())) return false;
+			INFO("Unable to locate: {}{}", m_data_path, util::CAM_CONFIG);
+			if (!(detIntrinsics() && detExtrinsics())) return false;
 		}
 
 		// Open it again because now we ensured that detExtrinsics has been completed  
-		fs.open(m_data_path + util::CAM_CONFIG_FILE, FileStorage::READ);
+		fs.open(m_data_path + util::CAM_CONFIG, FileStorage::READ);
 
 		if (fs.isOpened())
 		{
@@ -98,7 +108,8 @@ namespace team45
 	void VoxelCamera::loadVideo(std::string path)
 	{
 		// Open the video for this camera
-		m_video = VideoCapture(path);
+		m_video_path = path;
+		m_video = VideoCapture(m_video_path);
 		assert(m_video.isOpened());
 
 		// Assess the image size
@@ -112,34 +123,26 @@ namespace team45
 		assert(m_frame_amount > 1);
 		m_video.set(CAP_PROP_POS_AVI_RATIO, 0);  // Go back to the start
 
-		m_video.release(); // Re-open the file because m_video.set(CAP_PROP_POS_AVI_RATIO, 1) may screw it up
-		m_video = cv::VideoCapture(path);
+		reloadVideo();
 	}
 
-	void VoxelCamera::initColorModels(std::string path)
+	bool VoxelCamera::detIntrinsics()
 	{
-		if (util::fexists(path))
-		{
-
-		}
-	}
-
-	bool VoxelCamera::detIntrinsics(std::string path)
-	{
+		std::string path = m_data_path + util::INTRINSICS_FILE;
 		cv::FileStorage fs;
 
-        if (util::fexists(path))
-        {
-            INFO("Reading intrinics from {}", path);
-            fs.open(path, FileStorage::READ);
-            if (fs.isOpened())
-            {
-                fs["CameraMatrix"] >> m_intrinsic;
-                fs["DistortionCoeffs"] >> m_dist_coeffs;
-                fs.release();
-            }
-            return true;
-        }
+		if (util::fexists(path))
+		{
+			INFO("Reading intrinics from {}", path);
+			fs.open(path, FileStorage::READ);
+			if (fs.isOpened())
+			{
+				fs["CameraMatrix"] >> m_intrinsic;
+				fs["DistortionCoeffs"] >> m_dist_coeffs;
+				fs.release();
+			}
+			return true;
+		}
 
 		// Creating vector to store vectors of 3D points for each checkerboard image
 		std::vector<std::vector<cv::Point3f>> objPoints;
@@ -236,7 +239,7 @@ namespace team45
 					objPoints.push_back(cv::Point3f(j * m_cb_square_size, i * m_cb_square_size, 0));
 			}
 
-			cv:drawChessboardCorners(frame, cv::Size(m_cb_width, m_cb_height), imgPoints, true);
+		cv:drawChessboardCorners(frame, cv::Size(m_cb_width, m_cb_height), imgPoints, true);
 		}
 
 		/*cv::imshow("CB Corner Display", frame);
@@ -254,7 +257,7 @@ namespace team45
 	{
 		INFO("Initialize background model");
 		m_bg_model = cv::createBackgroundSubtractorMOG2();
-		std::string bg_video_path = m_data_path + util::BACKGROUND_VIDEO_FILE;
+		std::string bg_video_path = m_data_path + util::BACKGROUND_VIDEO;
 
 		assert(util::fexists(bg_video_path));
 		cv::VideoCapture vc(bg_video_path);
@@ -266,6 +269,41 @@ namespace team45
 			// Learning rate of -1, so it automatically adapts
 			m_bg_model->apply(frame, tempMask, -1);
 		}
+	}
+
+	void VoxelCamera::saveColorModels(std::vector<Histogram*>& color_models)
+	{
+		cv::FileStorage fs(m_data_path + util::COLOR_MODELS, cv::FileStorage::WRITE);
+		fs << "Entries" << "{";
+		for (int i = 0; i < color_models.size(); i++)
+		{
+			color_models[i]->save(fs, "Person");
+		}
+		fs << "}";
+		m_histograms = color_models;
+	}
+
+	bool VoxelCamera::loadColorModels()
+	{
+		/*if (!util::fexists(m_data_path + util::COLOR_MODELS))
+			return false;*/
+
+		cv::FileStorage fs(m_data_path + util::COLOR_MODELS, cv::FileStorage::READ);
+		if (fs.isOpened())
+		{
+			INFO("Found color model");
+			cv::FileNode person_entries = fs["Entries"];
+			cv::FileNodeIterator it = person_entries.begin(), it_end = person_entries.end();
+			int idx = 0;
+			for (; it != it_end; ++it, idx++)
+			{
+				Histogram* h = new Histogram();
+				h->load(*it);
+				m_histograms.push_back(h);
+			}
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -283,14 +321,20 @@ namespace team45
 	 */
 	void VoxelCamera::setVideoFrame(int frame_number)
 	{
-		m_video.set(CAP_PROP_POS_FRAMES, frame_number);
+		m_video.set(CAP_PROP_POS_FRAMES, frame_number - 1);
+		m_video >> m_frame;
+	}
+
+	void VoxelCamera::reloadVideo()
+	{
+		m_video.release(); // Re-open the file because m_video.set(CAP_PROP_POS_AVI_RATIO, 1) may screw it up
+		m_video = cv::VideoCapture(m_video_path);
 	}
 
 	/**
 	 * Set and return frame of the video location at the given frame number
 	 */
-	Mat& VoxelCamera::getVideoFrame(
-		int frame_number)
+	Mat& VoxelCamera::getVideoFrame(int frame_number)
 	{
 		setVideoFrame(frame_number);
 		return advanceVideoFrame();
@@ -356,7 +400,7 @@ namespace team45
 		if (!cap.isOpened())
 		{
 			WARN("Unable to open: ", m_data_path, util::CHECKERBOARD_VIDEO);
-			if (util::fexists(m_data_path + util::CAM_CONFIG_FILE))
+			if (util::fexists(m_data_path + util::CAM_CONFIG))
 			{
 				return true;
 			}
@@ -493,7 +537,7 @@ namespace team45
 		line(canvas, o, z, util::COLOR_RED, 2, CV_AA);
 		circle(canvas, o, 3, util::COLOR_YELLOW, -1, CV_AA);
 
-		fs.open(m_data_path + util::CAM_CONFIG_FILE, FileStorage::WRITE);
+		fs.open(m_data_path + util::CAM_CONFIG, FileStorage::WRITE);
 		if (fs.isOpened())
 		{
 			fs << "CameraMatrix" << camera_matrix;
@@ -504,7 +548,7 @@ namespace team45
 		}
 		else
 		{
-			ERROR("Unable to write camera intrinsics+extrinsics to: ", m_data_path, util::CAM_CONFIG_FILE);
+			ERROR("Unable to write camera intrinsics+extrinsics to: ", m_data_path, util::CAM_CONFIG);
 			return false;
 		}
 
@@ -625,9 +669,9 @@ namespace team45
 	 * Projects points from the scene space to the image coordinates
 	 */
 	cv::Point VoxelCamera::projectOnView(
-		const cv::Point3f& coords, 
-		const cv::Mat& rotation_values, 
-		const cv::Mat& translation_values, 
+		const cv::Point3f& coords,
+		const cv::Mat& rotation_values,
+		const cv::Mat& translation_values,
 		const cv::Mat& camera_matrix,
 		const cv::Mat& distortion_coeffs)
 	{
@@ -652,11 +696,11 @@ namespace team45
 	{
 		cv::Mat blurred, tmp, tmpMask, foreground_mask;
 		//cv::GaussianBlur(getFrame(), blurred, Size(3, 3), 1, 1);
-		m_bg_model->apply(getFrame(), tmpMask, 0);
+		m_bg_model->apply(m_frame, tmpMask, 0);
 		cv::threshold(tmpMask, tmpMask, 200, 255, cv::THRESH_BINARY);
 
 		// 3x3 morphological kernel, representing a cross 
-		cv::Mat kernel = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(5,5));
+		cv::Mat kernel = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(5, 5));
 
 		cv::erode(tmpMask, tmp, kernel);
 		cv::dilate(tmp, foreground_mask, kernel);
@@ -670,9 +714,6 @@ namespace team45
 		{
 			m_binary_diff = foreground_mask;
 		}
-		cv::Mat tmp2;
-		cv::bitwise_not(m_binary_diff, tmp2);
-		cv::bitwise_or(m_binary_diff, tmp2, m_foreground_image);
 		m_foreground_image = foreground_mask;
 	}
 
