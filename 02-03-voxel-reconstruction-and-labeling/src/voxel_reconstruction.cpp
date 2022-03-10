@@ -14,7 +14,7 @@ namespace team45
 	 * Voxel reconstruction class
 	 */
 	VoxelReconstruction::VoxelReconstruction(const vector<VoxelCamera*>& cs, int height, int step) :
-		m_cameras(cs), m_height(height), m_step(step)
+		m_cameras(cs), m_height(height), m_step(step), m_permutations(util::permutations(util::K_NR_OF_PERSONS))
 	{
 		for (size_t c = 0; c < m_cameras.size(); ++c)
 		{
@@ -216,10 +216,10 @@ namespace team45
 		cv::FileStorage fs(path, cv::FileStorage::READ);
 		if (fs.isOpened())
 		{
-			//fs["Bins"] >> m_bins;
-			//return;
+			fs["Bins"] >> m_bins;
+			return;
 		}
-				
+
 		// No file found,
 		// So determine bins for our histogram
 		// We use the cam with frontal view (cam 2, index 1)
@@ -288,7 +288,8 @@ namespace team45
 				else
 				{
 					auto currModels = m_cameras[c]->getColorModels();
-					matchModels(baseModels, currModels);
+					int p;
+					matchModels(baseModels, currModels, p);
 					m_cameras[c]->saveColorModels(currModels);
 				}
 
@@ -303,18 +304,15 @@ namespace team45
 		Changes m2, so that each model (person) in m2 matches the correct model in m1.
 		So m1 already knows which model is which person, and m2 uses the correlation between the models to estimate it's own matches
 	*/
-	void VoxelReconstruction::matchModels(std::vector<Histogram*>& m1, std::vector<Histogram*>& m2)
+	float VoxelReconstruction::matchModels(std::vector<Histogram*>& m1, std::vector<Histogram*>& m2, int& outPermutation)
 	{
-		// Generate permutations
-		std::vector<std::vector<int>> perms = util::permutations(util::K_NR_OF_PERSONS);
-
 		// Scores for each permutation
 		std::vector<float> scores;
 
-		// Per permutation compare baseModels to other camera models
-		for (int p = 0; p < perms.size(); p++)
+		// Per permutation compare models
+		for (int p = 0; p < m_permutations.size(); p++)
 		{
-			std::vector<int> permutation = perms[p];
+			std::vector<int> permutation = m_permutations[p];
 			float score = 0;
 
 			for (int i = 0; i < m1.size(); i++)
@@ -335,7 +333,7 @@ namespace team45
 			}
 
 		// Use the index to set the id's
-		std::vector<int> bestPermutation = perms[index];
+		std::vector<int> bestPermutation = m_permutations[index];
 		for (int i = 0; i < bestPermutation.size(); i++)
 			m2[i]->setId(bestPermutation[i]);
 
@@ -345,10 +343,13 @@ namespace team45
 				return a->getId() < b->getId();
 			});
 
+		outPermutation = index;
+		return best;
+
 		for (int i = 0; i < 4; i++)
 		{
-			m1[i]->draw();
-			m2[i]->draw();
+			//m1[i]->draw();
+			//m2[i]->draw();
 		}
 	}
 
@@ -359,8 +360,8 @@ namespace team45
 	{
 		updateVoxels();
 		labelVoxels();
-		//matchClusters();
-		colorVoxels();
+		int permutation = matchClusters();
+		colorVoxels(permutation);
 	}
 
 	/**
@@ -470,16 +471,60 @@ namespace team45
 		To do this, we first need to create a model for each view.
 		Then compare all the views and use an appropriate scale to compare them.
 	*/
-	void VoxelReconstruction::matchClusters()
+	int VoxelReconstruction::matchClusters()
 	{
+		// key	 = permutation index 
+		// value = <#cams who made that observation, confidence>
+		std::map<int, std::pair<int, float>> observations;
+
 		// A color model, per view, per person
-		std::vector<std::vector<Histogram*>> models;
 		for (int c = 0; c < m_cameras.size(); c++)
 		{
 			// Create color model for this camera
 			// So we can compare it to the offline models  
-			//models.push_back(createColorModels(c));
+			std::vector<Histogram*> models;
+			createColorModels(c, models);
+
+			int perm;
+			float difference = matchModels(m_cameras[c]->getColorModels(), models, perm);
+			auto it = observations.find(perm);
+			if (it != observations.end())
+			{
+				it->second.first++;
+				it->second.second += difference;
+			}
+			else
+			{
+				observations[perm] = std::pair(1, difference);
+			}
 		}
+
+		// If we only have 1 observation, all cameras labeled the clusters the same
+		// Otherwise we will take the observation with the lowest average difference will be used
+		int permutation;
+		INFO("Amount of different cluster labelings: {}", observations.size());
+		if (observations.size() == 1)
+		{
+			permutation = observations.begin()->first;
+		}
+		else
+		{
+			float lowestDifference = FLT_MAX;
+			auto it = observations.begin();
+			while (it != observations.end())
+			{
+				// divide total error by the amount of camera's that have seen that permutation
+				float difference = it->second.second / (float)it->second.first;
+				if (difference < lowestDifference)
+				{
+					lowestDifference = difference;
+					permutation = it->first;
+				}
+				it++;
+			}
+		}
+
+		return permutation;
 	}
 
 	void VoxelReconstruction::createColorModels(int cam, std::vector<Histogram*>& histograms)
@@ -488,7 +533,7 @@ namespace team45
 		pixelsPerPerson.resize(util::K_NR_OF_PERSONS);
 
 		auto& tempFrame = m_cameras[cam]->getFrame();
-		cv::imshow(util::get_name_rand("Frame of cam", cam), tempFrame);
+		//cv::imshow(util::get_name_rand("Frame of cam", cam), tempFrame);
 		cv::Mat frame;
 		tempFrame.convertTo(frame, CV_32F);
 
@@ -523,7 +568,7 @@ namespace team45
 		}
 	}
 
-	void VoxelReconstruction::colorVoxels()
+	void VoxelReconstruction::colorVoxels(int permutation)
 	{
 		for (int v = 0; v < m_visible_voxels.size(); v++)
 		{
@@ -548,7 +593,7 @@ namespace team45
 			*/
 
 			// Color the voxel based on it's labelling (not yet matched to a person)
-			std::vector<glm::vec3> colors
+			static std::vector<glm::vec3> colors
 			{
 				{1,0,0},	// red
 				{0,1,0},	// green
@@ -556,7 +601,8 @@ namespace team45
 				{1,0,1}		// purple
 			};
 
-			voxel->color = colors[m_labels.at<int>(v)];
+			int person = m_permutations[permutation][m_labels.at<int>(v)];
+			voxel->color = colors[person];
 
 			m_visible_voxels_gpu[v].color = voxel->color;
 		}

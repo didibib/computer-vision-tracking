@@ -32,18 +32,19 @@ namespace team45
 		int m_all_camera_flags;
 
 		std::vector<cv::Point3f> m_bins;
+		const std::vector<std::vector<int>> m_permutations;
 
 		void initVoxels();
 		void updateVoxels();
 		void labelVoxels();
-		void colorVoxels();
+		void colorVoxels(int permutation);
 		bool colorVoxel(Voxel* voxel, int cam);
 		VoxelGPU createVoxelGPU(Voxel const& voxel);
 		void createColorModels(int cam, std::vector<Histogram*>&);
-		void matchClusters();
+		int matchClusters();
 		void initColorModels();
 		void initBins(cv::Mat const& frame);
-		void matchModels(std::vector<Histogram*>&, std::vector<Histogram*>&);
+		float matchModels(std::vector<Histogram*>&, std::vector<Histogram*>&, int& outPermutation);
 
 	public:
 		VoxelReconstruction(const std::vector<VoxelCamera*>&, int height, int step);

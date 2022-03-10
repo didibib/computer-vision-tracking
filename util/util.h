@@ -37,8 +37,8 @@ namespace util
 	static const std::string CAM_CONFIG = "config.xml";
 	static const std::string COLOR_MODELS = "color_models.xml";
 	static const std::string SETTINGS = "settings.xml";
+	static const std::string BINS = "bins.xml";
 	
-
 	static const int CALIB_MAX_NR_FRAMES = 40;
 	static const int CALIB_LOCAL_FRAMES = 3;
 
@@ -151,6 +151,13 @@ namespace util
 		}
 		inline float f() { return uint() * 2.3283064365387e-10f; }
 		inline float range(float range) { return f() * range; }
+	}
+
+	static std::string get_name_rand(std::string name = "", int id = 0)
+	{
+		std::ostringstream stream;
+		stream << name << " " << id << " / " << util::random::uint();
+		return stream.str();
 	}
 
 } /* namespace team45 */
