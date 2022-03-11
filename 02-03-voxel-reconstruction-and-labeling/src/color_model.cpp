@@ -48,20 +48,20 @@ namespace team45
 
 		assert(m_hist.size() == other.m_hist.size());
 
-		//// Chi-Square dist
-		//for (int b = 0; b < m_hist.size(); b++)
-		//{
-		//	float diff = (m_hist[b] - other.m_hist[b]);
-		//	d += diff * diff / (float)m_hist[b];
-		//}
-
-		// Intersection
+		// Chi-Squared dist
 		for (int b = 0; b < m_hist.size(); b++)
 		{
-			d += (m_hist[b] < other.m_hist[b]) ? m_hist[b] : other.m_hist[b];
+			float diff = (m_hist[b] - other.m_hist[b]);
+			d += diff * diff / (float)(m_hist[b] + other.m_hist[b]);
 		}
 
-		return 1 / d;
+		// Intersection
+		//for (int b = 0; b < m_hist.size(); b++)
+		//{
+		//	d += (m_hist[b] < other.m_hist[b]) ? m_hist[b] : other.m_hist[b];
+		//}
+
+		return d;
 	}
 
 	// https://docs.opencv.org/2.4/doc/tutorials/imgproc/histograms/histogram_calculation/histogram_calculation.html
@@ -82,7 +82,7 @@ namespace team45
 
 		// Display
 		imshow(util::get_name_rand("Histogram", m_id), hist_image);
-		waitKey();
+		//waitKey();
 	}
 
 	void Histogram::save(cv::FileStorage fs, std::string nodename)

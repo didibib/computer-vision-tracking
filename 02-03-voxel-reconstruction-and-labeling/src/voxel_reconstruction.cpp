@@ -252,7 +252,7 @@ namespace team45
 		// Initialize the color models for each camera!
 		for (int c = 0; c < m_cameras.size(); c++)
 		{
-			if (true || !m_cameras[c]->loadColorModels(m_bins))
+			if (!m_cameras[c]->loadColorModels(m_bins))
 			{
 				// We need to create a new color model and save it
 				int frameNr = m_cameras[c]->getFrameAllVisible();
@@ -307,6 +307,23 @@ namespace team45
 	*/
 	float VoxelReconstruction::matchModels(std::vector<Histogram*>& m1, std::vector<Histogram*>& m2, int& outPermutation)
 	{
+		//for (int i = 0; i < 4; i++)
+		//{
+		//	INFO("Offline model {}", i);
+		//	for (int j = 0; j < 4; j++)
+		//	{
+		//		float d = m1[i]->compare(*m2[j]);
+		//		std::cout << d << std::endl;
+		//	}
+		//	m2[i]->setId(i);
+		//}
+
+		//for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
+		//{
+		//	//m1[i]->draw();
+		//	//m2[i]->draw();
+		//}
+
 		// Scores for each permutation
 		std::vector<float> scores;
 
@@ -335,6 +352,7 @@ namespace team45
 
 		// Use the index to set the id's
 		std::vector<int> bestPermutation = m_permutations[index];
+		INFO("Permutation: {} {} {} {}", bestPermutation[0], bestPermutation[1], bestPermutation[2], bestPermutation[3]);
 		for (int i = 0; i < bestPermutation.size(); i++)
 			m2[i]->setId(bestPermutation[i]);
 
@@ -344,11 +362,11 @@ namespace team45
 				return a->getId() < b->getId();
 			});
 
-		for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
-		{
-			/*m1[i]->draw();
-			m2[i]->draw();*/
-		}
+		//for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
+		//{
+		//	m1[i]->draw();
+		//	m2[i]->draw();
+		//}
 
 		outPermutation = index;
 		return best;
@@ -400,8 +418,8 @@ namespace team45
 				{
 					Voxel* voxel = iterator->second[v];
 
-					//if (voxel->position.z < 700)
-					//	continue;
+		/*			if (voxel->position.z < 700)
+						continue;*/
 
 					// Get the current status of the pixel at the point
 					int voxelFlag = m_cameras[c]->getForegroundImage().at<uchar>(point) == 255;
@@ -480,7 +498,7 @@ namespace team45
 		std::map<int, std::pair<int, float>> observations;
 
 		// A color model, per view, per person
-		for (int c = 0; c < m_cameras.size() - 3; c++)
+		for (int c = 0; c < m_cameras.size(); c++)
 		{
 			// Create color model for this camera so we can compare it to the offline models  
 			std::vector<Histogram*> models;
@@ -525,7 +543,6 @@ namespace team45
 				it++;
 			}
 		}
-
 
 		return permutation;
 	}
@@ -573,6 +590,8 @@ namespace team45
 
 	void VoxelReconstruction::colorVoxels(int permutation)
 	{
+		INFO("Permutation used in coloring: {} {} {} {}", m_permutations[permutation][0], m_permutations[permutation][1], m_permutations[permutation][2], m_permutations[permutation][3]);
+
 		for (int v = 0; v < m_visible_voxels.size(); v++)
 		{
 			Voxel* voxel = m_visible_voxels[v];
@@ -603,9 +622,16 @@ namespace team45
 				{0,0,1},	// blue
 				{1,0,1}		// purple
 			};
+			int label = m_labels.at<int>(v);
+			auto p = m_permutations[permutation];
+			int i = 0;
+			for (; i < p.size(); i++)
+			{
+				if (p[i] == label)
+					break;
+			}
 
-			int person = m_permutations[permutation][m_labels.at<int>(v)];
-			voxel->color = colors[person];
+			voxel->color = colors[i];
 
 			m_visible_voxels_gpu[v].color = voxel->color;
 		}
