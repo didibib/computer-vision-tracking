@@ -5,10 +5,11 @@ namespace team45
 	class Histogram
 	{
 	public:
+		Histogram(std::vector<cv::Point3f> bins) : m_bins(bins){}
 		/*
 		 * Calculate histogram for each channel
 		 */
-		void calculate(std::vector<cv::Point3f> const& colors, std::vector<cv::Point3f>const& bins);
+		void calculate(std::vector<cv::Point3f> const& colors);
 		
 		/*
 		 * @return d(H1, H2) using Chi-Sqr
@@ -28,8 +29,6 @@ namespace team45
 	private:
 		int m_id;							// ID of person
 		std::vector<float> m_hist;
-
-		// TEMP
-		std::vector<cv::Point3f> bees;
+		const std::vector<cv::Point3f> m_bins;
 	};
 }

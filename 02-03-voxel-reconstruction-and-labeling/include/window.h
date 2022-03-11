@@ -34,7 +34,7 @@ namespace team45
 
 		VoxelBuffer* m_voxel_buffer = nullptr;
 
-		bool m_rotate_camera = true;
+		bool m_rotate_camera = false;
 		bool m_reset_cursor = false;
 		cv::Point2f m_cursor_last_pos;
 

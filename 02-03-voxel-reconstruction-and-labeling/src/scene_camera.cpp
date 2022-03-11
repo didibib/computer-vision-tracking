@@ -102,6 +102,7 @@ namespace team45
 		m_Position.x = x;
 		m_Position.y = y;
 		m_Position.z = z;
+		UpdateCameraVectors();
 	}
 
 	void SceneCamera::RotateAroundPoint(glm::vec3 target, float radius, float speed)

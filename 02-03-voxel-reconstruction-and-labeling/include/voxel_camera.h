@@ -70,7 +70,7 @@ namespace team45
 
 		bool initialize();
 		void saveColorModels(std::vector<Histogram*>& color_models);
-		bool loadColorModels();
+		bool loadColorModels(std::vector<cv::Point3f>& bins);
 
 		cv::Mat& advanceVideoFrame();
 		cv::Mat& getVideoFrame(int);
@@ -141,16 +141,6 @@ namespace team45
 		void setColorModels(std::vector<Histogram*>& hs)
 		{
 			m_histograms = hs;
-		}
-
-		std::vector<cv::Point3f> const& getColorModelBins() const
-		{
-			return m_histogram_bins;
-		}
-
-		void setColorModelBins(std::vector<cv::Point3f>& bins)
-		{
-			m_histogram_bins = bins;
 		}
 	};
 

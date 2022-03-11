@@ -29,17 +29,9 @@ namespace team45
 
 		m_toggle_camera.resize(cs.size());
 
-		initVoxels();
-
-		m_cameras[1]->setVideoFrame(m_cameras[1]->getFrameAllVisible());
-		m_cameras[1]->createForegroundImage();
-		auto& tempFrame = m_cameras[1]->getFrame();
-
-		cv::Mat frame;
-		tempFrame.convertTo(frame, CV_32F);
-		m_cameras[1]->reloadVideo();
-
-		initBins(frame);
+		initVoxels(-300, 700);
+		
+		initBins();
 		initColorModels();
 	}
 
@@ -61,15 +53,16 @@ namespace team45
 	 * 	- LUT with a map of the entire voxelspace: point-on-cam to voxels
 	 * 	- LUT with a map of the entire voxelspace: voxel to cam points-on-cam
 	 */
-	void VoxelReconstruction::initVoxels()
+	void VoxelReconstruction::initVoxels(int offsetX, int offsetY)
 	{
 		// Cube dimensions from [(-m_height, m_height), (-m_height, m_height), (0, m_height)]
-		const int xL = -m_height;
-		const int xR = m_height;
-		const int yL = -m_height;
-		const int yR = m_height;
+		const int xL = -m_height + offsetX;
+		const int xR = m_height + offsetX;
+		const int yL = -m_height + offsetY;
+		const int yR = m_height + offsetY;
 		const int zL = 0;
 		const int zR = m_height;
+		// Plane
 		const int plane_y = (yR - yL) / m_step;
 		const int plane_x = (xR - xL) / m_step;
 		const int plane = plane_y * plane_x;
@@ -210,8 +203,9 @@ namespace team45
 		And taking X amount of colors from there
 		These will be dominant / prominent colors
 	*/
-	void VoxelReconstruction::initBins(cv::Mat const& frame)
+	void VoxelReconstruction::initBins()
 	{
+		INFO("Initializing bins");
 		std::string path = util::DATA_DIR_STR + "4persons/" + util::BINS;
 		cv::FileStorage fs(path, cv::FileStorage::READ);
 		if (fs.isOpened())
@@ -222,7 +216,16 @@ namespace team45
 
 		// No file found,
 		// So determine bins for our histogram
-		// We use the cam with frontal view (cam 2, index 1)
+		// We choose camera 1 (front view) to create our bins
+		m_cameras[1]->setVideoFrame(m_cameras[1]->getFrameAllVisible());
+		m_cameras[1]->createForegroundImage();
+		auto& tempFrame = m_cameras[1]->getFrame();
+
+		cv::Mat frame;
+		tempFrame.convertTo(frame, CV_32F);
+		m_cameras[1]->reloadVideo();
+		
+		// Get mask
 		cv::Mat mask = m_cameras[1]->getForegroundImage();
 		std::vector<cv::Point3f> pixels;
 		for (int y = 0; y < frame.rows; y++)
@@ -249,7 +252,7 @@ namespace team45
 		// Initialize the color models for each camera!
 		for (int c = 0; c < m_cameras.size(); c++)
 		{
-			if (/*!m_cameras[c]->loadColorModels()*/ true)
+			if (true || !m_cameras[c]->loadColorModels(m_bins))
 			{
 				// We need to create a new color model and save it
 				int frameNr = m_cameras[c]->getFrameAllVisible();
@@ -260,8 +263,6 @@ namespace team45
 					m_cameras[i]->setVideoFrame(frameNr);
 					m_cameras[i]->createForegroundImage();
 				}
-
-				m_cameras[c]->setColorModelBins(m_bins);
 
 				// Update and label the voxels
 				updateVoxels();
@@ -343,14 +344,15 @@ namespace team45
 				return a->getId() < b->getId();
 			});
 
+		for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
+		{
+			/*m1[i]->draw();
+			m2[i]->draw();*/
+		}
+
 		outPermutation = index;
 		return best;
 
-		for (int i = 0; i < 4; i++)
-		{
-			//m1[i]->draw();
-			//m2[i]->draw();
-		}
 	}
 
 	/**
@@ -478,15 +480,15 @@ namespace team45
 		std::map<int, std::pair<int, float>> observations;
 
 		// A color model, per view, per person
-		for (int c = 0; c < m_cameras.size(); c++)
+		for (int c = 0; c < m_cameras.size() - 3; c++)
 		{
-			// Create color model for this camera
-			// So we can compare it to the offline models  
+			// Create color model for this camera so we can compare it to the offline models  
 			std::vector<Histogram*> models;
 			createColorModels(c, models);
 
 			int perm;
 			float difference = matchModels(m_cameras[c]->getColorModels(), models, perm);
+
 			auto it = observations.find(perm);
 			if (it != observations.end())
 			{
@@ -524,6 +526,7 @@ namespace team45
 			}
 		}
 
+
 		return permutation;
 	}
 
@@ -540,15 +543,15 @@ namespace team45
 		int v;
 		//#pragma omp parallel for schedule(static) private(v) shared(voxel_bitmap)
 
-		// For every visible voxel, get the color and at it to the corresponding label
+		// For every visible voxel, get the color and add it to the corresponding label
 		for (v = 0; v < m_visible_voxels.size(); v++)
 		{
 			Voxel* voxel = m_visible_voxels[v];
 			int label = m_labels.at<int>(v);
 
 			cv::Point2f p = voxel->pixelProjections[cam];
-			int xOff = 7;
-			int yOff = 7;
+			int xOff = 3;
+			int yOff = 3;
 			for (int y = p.y - yOff; y <= p.y + yOff; y++)
 			{
 				for (int x = p.x - xOff; x <= p.x + xOff; x++)
@@ -562,8 +565,8 @@ namespace team45
 
 		for (int i = 0; i < pixelsPerPerson.size(); i++)
 		{
-			Histogram* h = new Histogram();
-			h->calculate(pixelsPerPerson[i], m_cameras[cam]->getColorModelBins());
+			Histogram* h = new Histogram(m_bins);
+			h->calculate(pixelsPerPerson[i]);
 			histograms.push_back(h);
 		}
 	}

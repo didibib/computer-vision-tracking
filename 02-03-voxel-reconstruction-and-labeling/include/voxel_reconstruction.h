@@ -34,16 +34,19 @@ namespace team45
 		std::vector<cv::Point3f> m_bins;
 		const std::vector<std::vector<int>> m_permutations;
 
-		void initVoxels();
+		void initVoxels(int offsetX, int offsetY);
 		void updateVoxels();
 		void labelVoxels();
 		void colorVoxels(int permutation);
 		bool colorVoxel(Voxel* voxel, int cam);
 		VoxelGPU createVoxelGPU(Voxel const& voxel);
+		/*
+		 * Call after voxels have been labeled 
+		 */
 		void createColorModels(int cam, std::vector<Histogram*>&);
 		int matchClusters();
 		void initColorModels();
-		void initBins(cv::Mat const& frame);
+		void initBins();
 		float matchModels(std::vector<Histogram*>&, std::vector<Histogram*>&, int& outPermutation);
 
 	public:

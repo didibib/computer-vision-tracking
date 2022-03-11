@@ -93,7 +93,7 @@ namespace team45
 		m_scene_camera = new SceneCamera();
 		m_scene_camera->Init(60.f, width, height, 0.1f, 10000.f);
 		int size = m_scene3d->getReconstructor().getSize();
-		m_scene_camera->SetPos(1000, 0, 100);
+		m_scene_camera->SetPos(2048 * 2, 512, 1024);
 
 		// Create voxel
 		m_cube_vb = new VertexBuffer();
