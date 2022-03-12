@@ -286,22 +286,35 @@ namespace team45
 				// Now we have to make sure that each model refers to the same person!
 				// We do this by comparing all different permutations of each color model from a camera with the first camera
 
-				auto baseModels = m_cameras[0]->getColorModels();
+				//if (c == 0)
+				//{
+				//	auto baseModels = m_cameras[0]->getColorModels();
+				//	// First camera defines person Ids
+				//	for (int i = 0; i < baseModels.size(); i++)
+				//		baseModels[i]->setId(i);
+				//	m_cameras[c]->saveColorModels(baseModels);
+				//}
+				//else
+				//{
+				//	// Get the previous model to compare with
+				//	auto baseModels = m_cameras[c-1]->getColorModels();
+				//	auto currModels = m_cameras[c]->getColorModels();
+				//	int p;
+				//	//matchModels(baseModels, currModels, p);
+				//	m_cameras[c]->saveColorModels(currModels);
+				//}
 
-				if (c == 0)
+
+				auto m = m_cameras[c]->getColorModels();
+
+				for (int i = 0; i < m.size(); i++)
 				{
-					// First camera defines person Ids
-					for (int i = 0; i < baseModels.size(); i++)
-						baseModels[i]->setId(i);
-					m_cameras[c]->saveColorModels(baseModels);
+					m[i]->setId(i);
+					m[i]->draw();
 				}
-				else
-				{
-					auto currModels = m_cameras[c]->getColorModels();
-					int p;
-					matchModels(baseModels, currModels, p);
-					m_cameras[c]->saveColorModels(currModels);
-				}
+				m_cameras[c]->saveColorModels(m);
+				waitKey();
+				
 
 				// Reload the video from all the cams because of some weird issue with video.set?
 				for (int i = 0; i < m_cameras.size(); i++)

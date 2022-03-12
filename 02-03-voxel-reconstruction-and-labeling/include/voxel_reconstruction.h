@@ -102,7 +102,7 @@ namespace team45
 			return m_step;
 		}
 
-		const std::vector<std::vector<Vertex>> const& get2dTracking() const{
+		std::vector<std::vector<Vertex>> const& get2dTracking() const{
 			return m_2d_tracking;
 		}
 	};
