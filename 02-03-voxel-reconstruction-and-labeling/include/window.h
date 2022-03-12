@@ -44,6 +44,7 @@ namespace team45
 
 		void drawWireframe(VertexBuffer*);
 		void drawVoxels();
+		void draw2dTracks();
 
 		void update();
 		void draw();

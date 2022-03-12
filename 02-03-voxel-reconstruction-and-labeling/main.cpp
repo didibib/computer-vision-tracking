@@ -9,7 +9,7 @@ using namespace team45;
 
 const int m_cam_views_amount = 4;
 const int m_voxel_height = 2048 + 1024;
-const int m_voxel_step = 128;
+const int m_voxel_step = 32;
 
 static std::vector<VoxelCamera*> m_cam_views;
 

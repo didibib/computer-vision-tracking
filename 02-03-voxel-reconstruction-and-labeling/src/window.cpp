@@ -254,7 +254,8 @@ namespace team45
 		drawWireframe(m_floor_grid_vb);
 		drawWireframe(m_cam_coord_vb);
 		drawWireframe(m_volume_vb);
-
+		
+		draw2dTracks();
 		m_basic_shader->End();
 
 		// Draw voxels
@@ -278,6 +279,7 @@ namespace team45
 	 */
 	void Window::drawVoxels()
 	{
+		
 		std::vector<VoxelGPU> voxels = m_scene3d->getReconstructor().getVisibleVoxelsGPU();
 		int size = WINDOW.m_scene3d->getReconstructor().getStep();
 		auto projectionView = m_scene_camera->GetProjMatrix() * m_scene_camera->GetViewMatrix();
@@ -289,8 +291,23 @@ namespace team45
 
 		m_voxel_buffer->Draw(voxels);
 
-
+		
 		m_voxel_shader->End();
+	}
+
+	void Window::draw2dTracks()
+	{
+		auto tracks = m_scene3d->getReconstructor().get2dTracking();
+		auto projectionView = m_scene_camera->GetProjMatrix() * m_scene_camera->GetViewMatrix();
+
+		for (int i = 0; i < tracks.size(); i++)
+		{
+			VertexBuffer points;
+			points.Create(tracks[0]);
+			points.Bind();
+			points.Draw(GL_LINES);
+			points.Unbind();
+		}
 	}
 
 	bool Window::isKeyRepeat(int key)

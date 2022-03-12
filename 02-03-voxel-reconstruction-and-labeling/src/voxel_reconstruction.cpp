@@ -29,8 +29,10 @@ namespace team45
 
 		m_toggle_camera.resize(cs.size());
 
+		m_2d_tracking.resize(util::K_NR_OF_PERSONS);
+
 		initVoxels(-300, 700);
-		
+
 		initBins();
 		initColorModels();
 	}
@@ -224,15 +226,22 @@ namespace team45
 		cv::Mat frame;
 		tempFrame.convertTo(frame, CV_32F);
 		m_cameras[1]->reloadVideo();
-		
+
 		// Get mask
 		cv::Mat mask = m_cameras[1]->getForegroundImage();
+		//INFO("mask dims {} {}", mask.size().width, mask.size().height);
+		//cv::line(mask, { 0, 275 }, { 600, 275 }, util::COLOR_RED, 2);
+		//cv::imshow("Mask", mask);
+		//cv::waitKey();
 		std::vector<cv::Point3f> pixels;
+		// We start from 275 to cut off the legs
 		for (int y = 0; y < frame.rows; y++)
 		{
 			for (int x = 0; x < frame.cols; x++)
 				if (mask.at<uchar>(y, x) != 0)
+				{
 					pixels.push_back(frame.at<cv::Point3f>(y, x));
+				}
 		}
 
 		// Determine most prominent colors in the view
@@ -352,7 +361,7 @@ namespace team45
 
 		// Use the index to set the id's
 		std::vector<int> bestPermutation = m_permutations[index];
-		INFO("Permutation: {} {} {} {}", bestPermutation[0], bestPermutation[1], bestPermutation[2], bestPermutation[3]);
+		//INFO("Permutation: {} {} {} {}", bestPermutation[0], bestPermutation[1], bestPermutation[2], bestPermutation[3]);
 		for (int i = 0; i < bestPermutation.size(); i++)
 			m2[i]->setId(bestPermutation[i]);
 
@@ -362,11 +371,12 @@ namespace team45
 				return a->getId() < b->getId();
 			});
 
-		//for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
-		//{
-		//	m1[i]->draw();
-		//	m2[i]->draw();
-		//}
+		for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
+		{
+			//m1[i]->draw();
+			//m2[i]->draw();
+			//cv::waitKey();
+		}
 
 		outPermutation = index;
 		return best;
@@ -381,6 +391,7 @@ namespace team45
 		updateVoxels();
 		labelVoxels();
 		int permutation = matchClusters();
+		trackClusters(permutation);
 		colorVoxels(permutation);
 	}
 
@@ -417,9 +428,6 @@ namespace team45
 				for (int v = 0; v < iterator->second.size(); v++)
 				{
 					Voxel* voxel = iterator->second[v];
-
-		/*			if (voxel->position.z < 700)
-						continue;*/
 
 					// Get the current status of the pixel at the point
 					int voxelFlag = m_cameras[c]->getForegroundImage().at<uchar>(point) == 255;
@@ -522,7 +530,7 @@ namespace team45
 		// If we only have 1 observation, all cameras labeled the clusters the same
 		// Otherwise we will take the observation with the lowest average difference will be used
 		int permutation;
-		INFO("Amount of different cluster labelings: {}", observations.size());
+		//INFO("Amount of different cluster labelings: {}", observations.size());
 		if (observations.size() == 1)
 		{
 			permutation = observations.begin()->first;
@@ -560,20 +568,62 @@ namespace team45
 		int v;
 		//#pragma omp parallel for schedule(static) private(v) shared(voxel_bitmap)
 
-		// For every visible voxel, get the color and add it to the corresponding label
+		// For every visible voxel above z = 700, get the color and add it to the corresponding label
 		for (v = 0; v < m_visible_voxels.size(); v++)
 		{
 			Voxel* voxel = m_visible_voxels[v];
+
+			//if (voxel->position.z < 700)
+			//	continue;
+
 			int label = m_labels.at<int>(v);
 
 			cv::Point2f p = voxel->pixelProjections[cam];
-			int xOff = 3;
-			int yOff = 3;
+			int xOff = 2;
+			int yOff = 2;
+
+			Voxel* closest = voxel;
+			for (int y = p.y - yOff; y <= p.y + yOff; y++)
+			{
+				if (closest != voxel)
+					break;
+				for (int x = p.x - xOff; x <= p.x + xOff; x++)
+				{
+					if (closest != voxel)
+						break;
+
+					int pixelIndex = x + y * m_cameras[cam]->getSize().width;
+					// Iterator over the lookup table from the camera (all pixels)
+					auto mapIt = m_lookup[cam].find(pixelIndex);
+					// Check if our pixel is on the screen / has voxels mapped to it
+					if (mapIt == m_lookup[cam].end())
+						continue;
+
+					auto voxels = mapIt->second;
+
+					// Iterator over the voxels from a single pixel
+					auto vecIt = voxels.begin();
+					// Move our iterator to the first voxel that is on in all cameras
+					// The voxels are ordered on distance 
+					while (vecIt != voxels.end() && (*vecIt)->camera_flags != m_all_camera_flags)
+						vecIt++;
+					// Double check that we found a voxel
+					if (vecIt == voxels.end())
+						continue;
+
+					if ((*vecIt)->distances[cam] < closest->distances[cam] && m_labels.at<int>((*vecIt)->visibleIndex) != label)
+						closest = *vecIt;
+				}
+			}
+
+			// Voxel is occluded
+			if (closest != voxel)
+				continue;
+
 			for (int y = p.y - yOff; y <= p.y + yOff; y++)
 			{
 				for (int x = p.x - xOff; x <= p.x + xOff; x++)
 				{
-					// TODO Check for occlusion
 					cv::Point2f pOff = cv::Point2f(x, y);
 					pixelsPerPerson[label].push_back(frame.at<Point3f>(pOff));
 				}
@@ -587,10 +637,38 @@ namespace team45
 			histograms.push_back(h);
 		}
 	}
+	static int x = 0;
+
+	void VoxelReconstruction::trackClusters(int permutation)
+	{
+		for (int c = 0; c < util::K_NR_OF_PERSONS; c++)
+		{
+			auto p = m_permutations[permutation];
+			int i = 0;
+			for (; i < p.size(); i++)
+			{
+				if (p[i] == c)
+					break;
+			}
+
+			static std::vector<glm::vec3> colors
+			{
+				{1,0,0},	// red
+				{0,1,0},	// green
+				{0,0,1},	// blue
+				{1,0,1}		// purple
+			};
+
+			Vertex v;
+			v.Position = glm::vec3(m_cluster_centers.at<float>(c, 0), m_cluster_centers.at<float>(c, 1), 0);
+			v.Color = glm::vec4(colors[i], 1);
+			m_2d_tracking[i].push_back(v);
+		}
+	}
 
 	void VoxelReconstruction::colorVoxels(int permutation)
 	{
-		INFO("Permutation used in coloring: {} {} {} {}", m_permutations[permutation][0], m_permutations[permutation][1], m_permutations[permutation][2], m_permutations[permutation][3]);
+		//INFO("Permutation used in coloring: {} {} {} {}", m_permutations[permutation][0], m_permutations[permutation][1], m_permutations[permutation][2], m_permutations[permutation][3]);
 
 		for (int v = 0; v < m_visible_voxels.size(); v++)
 		{
@@ -614,7 +692,6 @@ namespace team45
 			colorVoxel(voxel, 1);
 			*/
 
-			// Color the voxel based on it's labelling (not yet matched to a person)
 			static std::vector<glm::vec3> colors
 			{
 				{1,0,0},	// red
@@ -672,7 +749,7 @@ namespace team45
 				// Iterator over the voxels from a single pixel
 				auto vecIt = voxels.begin();
 				// Move our iterator to the first voxel that is on in all cameras
-				while ((*vecIt)->camera_flags != m_all_camera_flags && vecIt != voxels.end())
+				while (vecIt != voxels.end() && (*vecIt)->camera_flags != m_all_camera_flags)
 					vecIt++;
 
 				// Double check that we found a voxel (not actually necessary if no rounding errors have occured)

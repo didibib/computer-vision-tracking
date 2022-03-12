@@ -34,9 +34,12 @@ namespace team45
 		std::vector<cv::Point3f> m_bins;
 		const std::vector<std::vector<int>> m_permutations;
 
+		std::vector<std::vector<Vertex>> m_2d_tracking;	// Keeping track of 2d coordinates per person, over time
+
 		void initVoxels(int offsetX, int offsetY);
 		void updateVoxels();
 		void labelVoxels();
+		void trackClusters(int permutation);
 		void colorVoxels(int permutation);
 		bool colorVoxel(Voxel* voxel, int cam);
 		VoxelGPU createVoxelGPU(Voxel const& voxel);
@@ -97,6 +100,10 @@ namespace team45
 		const int& getStep() const
 		{
 			return m_step;
+		}
+
+		const std::vector<std::vector<Vertex>> const& get2dTracking() const{
+			return m_2d_tracking;
 		}
 	};
 
