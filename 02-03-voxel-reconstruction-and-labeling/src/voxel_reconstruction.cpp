@@ -284,26 +284,8 @@ namespace team45
 				m_cameras[c]->setColorModels(models);
 
 				// Now we have to make sure that each model refers to the same person!
-				// We do this by comparing all different permutations of each color model from a camera with the first camera
-
-				//if (c == 0)
-				//{
-				//	auto baseModels = m_cameras[0]->getColorModels();
-				//	// First camera defines person Ids
-				//	for (int i = 0; i < baseModels.size(); i++)
-				//		baseModels[i]->setId(i);
-				//	m_cameras[c]->saveColorModels(baseModels);
-				//}
-				//else
-				//{
-				//	// Get the previous model to compare with
-				//	auto baseModels = m_cameras[c-1]->getColorModels();
-				//	auto currModels = m_cameras[c]->getColorModels();
-				//	int p;
-				//	//matchModels(baseModels, currModels, p);
-				//	m_cameras[c]->saveColorModels(currModels);
-				//}
-
+				// We first tryied this by comparing all different permutations of each color model from a camera with the first camera
+				// Because the coloring didn't go well we did "synced" the color models of each camera by hand
 
 				auto m = m_cameras[c]->getColorModels();
 
@@ -314,7 +296,6 @@ namespace team45
 				}
 				m_cameras[c]->saveColorModels(m);
 				waitKey();
-				
 
 				// Reload the video from all the cams because of some weird issue with video.set?
 				for (int i = 0; i < m_cameras.size(); i++)
@@ -329,23 +310,6 @@ namespace team45
 	*/
 	float VoxelReconstruction::matchModels(std::vector<Histogram*>& m1, std::vector<Histogram*>& m2, int& outPermutation)
 	{
-		//for (int i = 0; i < 4; i++)
-		//{
-		//	INFO("Offline model {}", i);
-		//	for (int j = 0; j < 4; j++)
-		//	{
-		//		float d = m1[i]->compare(*m2[j]);
-		//		std::cout << d << std::endl;
-		//	}
-		//	m2[i]->setId(i);
-		//}
-
-		//for (int i = 0; i < util::K_NR_OF_PERSONS; i++)
-		//{
-		//	//m1[i]->draw();
-		//	//m2[i]->draw();
-		//}
-
 		// Scores for each permutation
 		std::vector<float> scores;
 
@@ -503,8 +467,6 @@ namespace team45
 		int flags = cv::KMEANS_PP_CENTERS;
 
 		double compactness = cv::kmeans(voxel_points, util::K_NR_OF_PERSONS, m_labels, criteria, util::K_NR_OF_ATTEMPTS, flags, m_cluster_centers);
-
-		INFO("Clustered voxels with compactness: {}", compactness);
 	}
 
 	/*
@@ -672,8 +634,25 @@ namespace team45
 				{1,0,1}		// purple
 			};
 
+			// Sometimes the matching goes wrong, for example when the persons are very close or because of ghost voxel.
+			// The cluster gets the wrong color and the new pos jumps to another cluster
+			// The persons are walking so we can check the distance between the new and old position
+			auto pos = glm::vec3(m_cluster_centers.at<float>(c, 0), m_cluster_centers.at<float>(c, 1), 0);
+			int size = m_2d_tracking[i].size();
+			if (size > 2)
+			{				
+				auto posprev = m_2d_tracking[i][size - 1].Position;
+				float dist = glm::distance(posprev, pos);
+				if (dist > 50)
+				{
+					// If the distance is too big we estimate the new position
+					auto posprevprev = m_2d_tracking[i][size - 2].Position;
+					pos = 2.f * posprev - posprevprev;										
+				}
+			}
+
 			Vertex v;
-			v.Position = glm::vec3(m_cluster_centers.at<float>(c, 0), m_cluster_centers.at<float>(c, 1), 0);
+			v.Position = pos;
 			v.Color = glm::vec4(colors[i], 1);
 			m_2d_tracking[i].push_back(v);
 		}

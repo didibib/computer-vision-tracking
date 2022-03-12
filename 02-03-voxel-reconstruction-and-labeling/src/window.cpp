@@ -259,7 +259,7 @@ namespace team45
 		m_basic_shader->End();
 
 		// Draw voxels
-		drawVoxels();
+		//drawVoxels();
 	}
 
 	void Window::drawWireframe(VertexBuffer* vb)
@@ -303,7 +303,7 @@ namespace team45
 		for (int i = 0; i < tracks.size(); i++)
 		{
 			VertexBuffer points;
-			points.Create(tracks[0]);
+			points.Create(tracks[i]);
 			points.Bind();
 			points.Draw(GL_LINES);
 			points.Unbind();
