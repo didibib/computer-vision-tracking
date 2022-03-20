@@ -26,10 +26,11 @@ namespace team45
 		cv::Mat m_labels;									// Clustering labels for each voxel
 		cv::Mat m_cluster_centers;							// Cluster centers for each person in the 3d voxel space
 
-		// Lookup table per camera, where a pixel (y*width + x) maps to all of the voxels that are projected onto it   
+		// Lookup table per camera, where a pixel (y * width + x) maps to all of the voxels that are projected onto it   
 		std::vector<std::map<int, std::vector<Voxel*>>> m_lookup;
 
 		int m_all_camera_flags;
+		bool m_saved_2d_tracking = false;
 
 		std::vector<cv::Point3f> m_bins;
 		const std::vector<std::vector<int>> m_permutations;
@@ -44,7 +45,7 @@ namespace team45
 		bool colorVoxel(Voxel* voxel, int cam);
 		VoxelGPU createVoxelGPU(Voxel const& voxel);
 		/*
-		 * Call after voxels have been labeled 
+		 * Call after voxels have been labeled
 		 */
 		void createColorModels(int cam, std::vector<Histogram*>&);
 		int matchClusters();
@@ -102,9 +103,14 @@ namespace team45
 			return m_step;
 		}
 
-		std::vector<std::vector<Vertex>> const& get2dTracking() const{
+		const std::vector<std::vector<Vertex>>& get2dTracking() const
+		{
 			return m_2d_tracking;
 		}
+		
+		void smooth2dTracking();
+		void save2dTracking();
+
 	};
 
 } /* namespace team45 */

@@ -25,6 +25,8 @@ void showKeys()
 	std::cout << "	scroll      : Zoom"							<< std::endl;
 	std::cout << "	r           : Rotate camera around scene"	<< std::endl;
 	std::cout << "	1,2,3,4     : Toggle voxel camera #"		<< std::endl;
+	std::cout << "	v			: Toggle draw voxels"			<< std::endl;
+	std::cout << "	c			: Smooth and save tracking"		<< std::endl;
 	std::cout << "	p           : Pause"						<< std::endl;
 	std::cout << "	b           : Frame back"					<< std::endl;
 	std::cout << "	n           : Next frame"					<< std::endl << std::endl;

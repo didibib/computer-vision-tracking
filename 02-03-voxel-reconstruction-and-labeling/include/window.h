@@ -15,7 +15,8 @@ namespace team45
 		Window() {};
 
 		float m_deltaTime = 0;
-		bool m_paused = false;
+		bool m_paused = true;
+		bool m_draw_voxels = true;
 
 		glm::vec4 m_clear_color;
 
@@ -25,6 +26,7 @@ namespace team45
 
 		Shader* m_basic_shader = nullptr;
 		Shader* m_voxel_shader = nullptr;
+		Shader* m_tracking_shader = nullptr;
 		
 		VertexBuffer* m_cube_vb = nullptr;
 		VertexBuffer* m_floor_grid_vb = nullptr;

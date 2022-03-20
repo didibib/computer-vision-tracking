@@ -38,6 +38,7 @@ namespace util
 	static const std::string COLOR_MODELS = "color_models.xml";
 	static const std::string SETTINGS = "settings.xml";
 	static const std::string BINS = "bins.xml";
+	static const std::string TRACKING2D = "tracking2d.xml";
 	
 	static const int CALIB_MAX_NR_FRAMES = 40;
 	static const int CALIB_LOCAL_FRAMES = 3;
@@ -46,6 +47,7 @@ namespace util
 
 	static const int K_NR_OF_PERSONS = 4;
 	static const int K_NR_OF_ATTEMPTS = 10;
+	static const float K_OUTLIER_MAX_DIST = 50.f;
 
 	/**
 	 * Linux/Windows friendly way to check if a file exists

@@ -68,7 +68,8 @@ namespace team45
 			return false;
 		}
 
-		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_DEPTH_TEST); 
+		glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 
 		// Setup callbacks
 		glfwSetKeyCallback(m_glfwWindow, keyCallback);
@@ -88,6 +89,9 @@ namespace team45
 
 		m_voxel_shader = new Shader();
 		m_voxel_shader->Load(util::SHADER_DIR_STR + "voxel");
+
+		m_tracking_shader = new Shader();
+		m_tracking_shader->Load(util::SHADER_DIR_STR + "tracking");
 
 		// Create scene camera
 		m_scene_camera = new SceneCamera();
@@ -169,9 +173,23 @@ namespace team45
 			WINDOW.m_rotate_camera = !WINDOW.m_rotate_camera;
 			WINDOW.m_scene_camera->Reset(WINDOW.m_rotate_camera);
 		}
+		if (isKeyPressed(GLFW_KEY_C))
+		{
+			// Save the 2D tracking points
+			scene3d.getReconstructor().smooth2dTracking();
+			scene3d.getReconstructor().save2dTracking();
+		}
+		if (isKeyPressed(GLFW_KEY_V))
+		{
+			m_draw_voxels = !m_draw_voxels;
+		}
 
 		if (scene3d.getCurrentFrame() > scene3d.getNumberOfFrames() - 2)
 		{
+			// Save the 2D tracking points
+			scene3d.getReconstructor().smooth2dTracking();
+			scene3d.getReconstructor().save2dTracking();
+
 			// Go to the start of the video if we've moved beyond the end
 			scene3d.setCurrentFrame(0);
 			for (size_t c = 0; c < scene3d.getCameras().size(); ++c)
@@ -255,11 +273,18 @@ namespace team45
 		drawWireframe(m_cam_coord_vb);
 		drawWireframe(m_volume_vb);
 		
-		draw2dTracks();
 		m_basic_shader->End();
 
-		// Draw voxels
-		//drawVoxels();
+		m_tracking_shader->Begin();
+		m_tracking_shader->SetMat4("u_ProjectionView", projectionView);
+		m_tracking_shader->SetMat4("u_Model", model);
+
+		draw2dTracks();
+
+		m_tracking_shader->End();
+
+
+		if(m_draw_voxels) drawVoxels();
 	}
 
 	void Window::drawWireframe(VertexBuffer* vb)
@@ -288,9 +313,7 @@ namespace team45
 		// Set camera matrices
 		m_voxel_shader->SetMat4("u_ProjectionView", projectionView);
 		// Draw voxels
-
 		m_voxel_buffer->Draw(voxels);
-
 		
 		m_voxel_shader->End();
 	}
@@ -305,7 +328,7 @@ namespace team45
 			VertexBuffer points;
 			points.Create(tracks[i]);
 			points.Bind();
-			points.Draw(GL_LINES);
+			points.Draw(GL_POINTS);
 			points.Unbind();
 		}
 	}

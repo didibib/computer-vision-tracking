@@ -616,6 +616,8 @@ namespace team45
 
 	void VoxelReconstruction::trackClusters(int permutation)
 	{
+		if (m_saved_2d_tracking) return;
+
 		for (int c = 0; c < util::K_NR_OF_PERSONS; c++)
 		{
 			auto p = m_permutations[permutation];
@@ -634,28 +636,68 @@ namespace team45
 				{1,0,1}		// purple
 			};
 
-			// Sometimes the matching goes wrong, for example when the persons are very close or because of ghost voxel.
-			// The cluster gets the wrong color and the new pos jumps to another cluster
-			// The persons are walking so we can check the distance between the new and old position
 			auto pos = glm::vec3(m_cluster_centers.at<float>(c, 0), m_cluster_centers.at<float>(c, 1), 0);
-			int size = m_2d_tracking[i].size();
-			if (size > 2)
-			{				
-				auto posprev = m_2d_tracking[i][size - 1].Position;
-				float dist = glm::distance(posprev, pos);
-				if (dist > 50)
-				{
-					// If the distance is too big we estimate the new position
-					auto posprevprev = m_2d_tracking[i][size - 2].Position;
-					pos = 2.f * posprev - posprevprev;										
-				}
-			}
-
+			
 			Vertex v;
 			v.Position = pos;
 			v.Color = glm::vec4(colors[i], 1);
 			m_2d_tracking[i].push_back(v);
 		}
+	}
+
+	/*
+		Smooths the 2d points that represent the paths of the voxel reconstructed people
+		Does this by removing any outliers (large jumps) 
+	*/
+	void VoxelReconstruction::smooth2dTracking()
+	{
+		if (m_saved_2d_tracking) return;
+
+		int n = 0;
+		for (int i = 0; i < m_2d_tracking.size(); i++)
+		{
+			for(int p = 1; p < m_2d_tracking[i].size(); p++)
+			{
+				Vertex v = m_2d_tracking[i][p];
+				Vertex vprev = m_2d_tracking[i][p - 1];
+
+				float dist = glm::distance(v.Position, vprev.Position);
+				if(dist > util::K_OUTLIER_MAX_DIST * n)
+				{
+					// Outlier detected! Remove from vector and lower index
+					m_2d_tracking[i].erase(m_2d_tracking[i].begin() + p);
+					p--;
+					n++;
+				}
+				else
+				{
+					n = 0;
+				}
+			}
+		}
+	}
+
+	void VoxelReconstruction::save2dTracking()
+	{
+		FileStorage fs(util::DATA_DIR_STR + util::TRACKING2D, FileStorage::WRITE);
+		INFO("Saving 2D tracking...");
+		for (int i = 0; i < m_2d_tracking.size(); i++)
+		{
+			fs << "Person" << "{";
+			for (int v = 0; v < m_2d_tracking[i].size(); v++)
+			{
+				glm::vec3 pos = m_2d_tracking[i][v].Position;
+				cv::Point2f cvPos = cv::Point2f(pos.x, pos.y);
+				fs << "Position" << "{";
+				fs << "X" << pos.x;
+				fs << "Y" << pos.y;
+				fs << "}";
+			}
+			fs << "}";
+		}
+		m_saved_2d_tracking = true;
+
+		INFO("Done saving 2D tracking!");		
 	}
 
 	void VoxelReconstruction::colorVoxels(int permutation)
