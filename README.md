@@ -6,8 +6,8 @@ Implements a simple voxel reconstruction algorithm based on multiple camera angl
 Extended to include subject tracking using color models. Simple color models are created using histogram color models and k-means to find dominant colors. Voxels are then clustered (also using k-means) and tracked over multiple frames. 
 
 ## Videos
-[Voxel reconstruction demo](https://youtu.be/9j9XlNlU7Zw)
-[Subject tracking demo](https://youtu.be/Ep7bMrkyu48)
+- [Voxel reconstruction demo](https://youtu.be/9j9XlNlU7Zw)
+- [Subject tracking demo](https://youtu.be/Ep7bMrkyu48)
 
 
 # Template info
