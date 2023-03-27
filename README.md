@@ -1,6 +1,10 @@
-# Voxel Reconstruction
-Voxel Reconstruction based on multiple camera angles. Developed for the course 'Computer Vision (INFOMCV)'. Written in C++.
+## About
+Voxel Reconstruction for the course Computer Vision (INFOMCV) at Utrecht University. </br>
+By </br>
+Merijn Schepers </br>
+Tariq Bakhtali </br>
 
+## Voxel Reconstruction
 Implements a simple voxel reconstruction algorithm based on multiple camera angles as described in the course. Uses simple image pre-processing to acquire workable input images. 
 
 Extended to include subject tracking using color models. Simple color models are created using histogram color models and k-means to find dominant colors. Voxels are then clustered (also using k-means) and tracked over multiple frames. 
