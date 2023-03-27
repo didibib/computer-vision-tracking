@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<opencv_storage>
+    <!-- Frame where all persons are visible in ms -->
+    <FrameAllVisible>662</FrameAllVisible>  
+</opencv_storage>
